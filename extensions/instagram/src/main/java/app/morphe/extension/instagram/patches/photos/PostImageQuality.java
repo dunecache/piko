@@ -79,14 +79,33 @@ public final class PostImageQuality {
                 }
             });
 
-    /** Identity key -> widest resolution (px) that the post published, for ORIGINAL. */
-    private static final Map<String, Integer> MAX_WIDTHS =
-            Collections.synchronizedMap(new LinkedHashMap<String, Integer>(16, 0.75f, true) {
+    /**
+     * Identity key -> every resolution the post published, widest last.
+     *
+     * <p>This is what a tier resolves against. Ultra clamps the width the viewer *asks* for
+     * ({@code Pref.improveImageViewing}), it does not filter {@code image_versions2}, so the
+     * candidates reaching the overflow menu are still the untouched originals. Swapping in
+     * one of these real URLs is therefore what actually beats the clamp, whereas rewriting a
+     * {@code NxN} token only works while that token happens to exist in the path.
+     */
+    private static final Map<String, List<Variant>> VARIANTS =
+            Collections.synchronizedMap(new LinkedHashMap<String, List<Variant>>(16, 0.75f, true) {
                 @Override
-                protected boolean removeEldestEntry(Map.Entry<String, Integer> eldest) {
+                protected boolean removeEldestEntry(Map.Entry<String, List<Variant>> eldest) {
                     return size() > MAX_ENTRIES;
                 }
             });
+
+    /** One published resolution: the width Instagram reports and the URL that serves it. */
+    private static final class Variant {
+        final int width;
+        final String url;
+
+        Variant(int width, String url) {
+            this.width = width;
+            this.url = url;
+        }
+    }
 
     /**
      * Keys already reported, so a RecyclerView rebinding the same photo does not repeat the
@@ -168,32 +187,96 @@ public final class PostImageQuality {
             Integer tier = TIERS.get(identity);
             if (tier == null) return url;
 
-            if (tier == ORIGINAL) {
-                // Explicitly requested at full resolution: raise back to whatever the post
-                // published, which undoes the global Ultra low-resolution clamp for this post.
-                Integer published = MAX_WIDTHS.get(identity);
-                if (published == null || published <= 0) {
-                    // Nothing better on record. Drop the override so the URL is left untouched.
-                    debugOnce("orig-nopub:" + identity,
-                            "override ORIGINAL but no published width recorded, dropping it. id=" + identity);
-                    forget(identity);
-                    return url;
+            // ORIGINAL has no fixed cap, so it resolves against the widest variant the post
+            // actually published. Using an unbounded target here would overflow the token
+            // arithmetic inside resize(), so the real width is looked up instead.
+            boolean grow = tier == ORIGINAL;
+            int target = grow ? widestFor(identity) : tier;
+
+            // Preferred path: the incoming URL still carries a size token, so the tier can be
+            // applied to the app's own URL. Keeps whatever crop/suffix the app chose.
+            if (target > 0) {
+                String resized = resize(url, target, grow);
+                if (!resized.equals(url)) {
+                    debugOnce("tier:" + identity + ":" + tier,
+                            "override " + (grow ? "ORIGINAL " + target + "px" : tier + "px")
+                                    + ", rewrote url id=" + identity);
+                    return resized;
                 }
-                String grown = resize(url, published, true);
-                debugOnce("grow:" + identity + ":" + published,
-                        "override ORIGINAL -> " + published + "px, " + unchanged(grown, url)
-                                + " id=" + identity);
-                return grown;
             }
 
-            String shrunk = resize(url, tier, false);
-            debugOnce("shrink:" + identity + ":" + tier,
-                    "override " + tier + "px, " + unchanged(shrunk, url) + " id=" + identity);
-            return shrunk;
+            // No usable token in the path (or already at target): swap in a real published
+            // URL instead. Ultra picks a different candidate rather than rewriting the URL,
+            // so the incoming string is one of the variants recorded below and the override
+            // can still be honoured by swapping it back out.
+            String swapped = swapVariant(identity, tier, url);
+            if (swapped != null && !swapped.equals(url)) {
+                debugOnce("swap:" + identity + ":" + tier,
+                        "override " + (grow ? "ORIGINAL" : tier + "px")
+                                + ", swapped variant url id=" + identity);
+                return swapped;
+            }
+
+            debugOnce("noop:" + identity + ":" + tier,
+                    "override " + (grow ? "ORIGINAL" : tier + "px")
+                            + " but no variant reached it, left alone id=" + identity);
+            return url;
         } catch (Throwable t) {
             PikoUtils.logger(t);
             return url;
         }
+    }
+
+    /**
+     * Widest published width on record for {@code identity}, or 0 when nothing is recorded.
+     */
+    private static int widestFor(String identity) {
+        List<Variant> variants = VARIANTS.get(identity);
+        if (variants == null) return 0;
+        int widest = 0;
+        for (Variant variant : variants) widest = Math.max(widest, variant.width);
+        return widest;
+    }
+
+    /**
+     * Picks the published variant closest to {@code tier} and returns it, or null when the
+     * identity has no variants on record.
+     *
+     * <p>{@link #ORIGINAL} means "widest". For a real tier the widest variant at or under the
+     * target is used; when even the smallest published variant exceeds the target, the
+     * smallest is used instead, because returning nothing would silently leave the override
+     * unapplied.
+     *
+     * <p>The query string of {@code incoming} is kept rather than the stored one: signatures
+     * expire, and the URL the loader just handed us is the freshest signature available. The
+     * path is what actually encodes the resolution, so swapping it is sufficient. Falls back
+     * to the stored full URL when the incoming URL has no query to reuse.
+     */
+    private static String swapVariant(String identity, int tier, String incoming) {
+        List<Variant> variants = VARIANTS.get(identity);
+        if (variants == null || variants.isEmpty()) return null;
+
+        boolean widest = tier == ORIGINAL;
+        Variant best = null;
+        for (Variant variant : variants) {
+            if (!widest && variant.width > tier) continue;
+            if (best == null || variant.width > best.width) best = variant;
+        }
+        if (best == null) {
+            // Every published variant is larger than the target: use the smallest one so the
+            // override still shrinks the image, just as far as Instagram allows.
+            for (Variant variant : variants) {
+                if (best == null || variant.width < best.width) best = variant;
+            }
+        }
+        if (best == null) return null;
+
+        int query = incoming == null ? -1 : incoming.indexOf('?');
+        if (query < 0) return best.url;
+
+        int bestQuery = best.url.indexOf('?');
+        String path = bestQuery < 0 ? best.url : best.url.substring(0, bestQuery);
+        return path + incoming.substring(query);
     }
 
     /**
@@ -234,12 +317,6 @@ public final class PostImageQuality {
         return matcher.replaceFirst(Matcher.quoteReplacement(replacement));
     }
 
-    /** Names the reason a rewrite was a no-op, so the log distinguishes "already right" from "failed". */
-    private static String unchanged(String result, String original) {
-        if (!result.equals(original)) return "rewrote url";
-        return "url already at or below target, left alone";
-    }
-
     private static int safeParse(String s) {
         try {
             return Integer.parseInt(s);
@@ -259,14 +336,15 @@ public final class PostImageQuality {
         return SIZE_TOKEN.matcher(path).replaceAll("{S}");
     }
 
-    private static void forget(String identityKey) {
-        TIERS.remove(identityKey);
-        MAX_WIDTHS.remove(identityKey);
-    }
-
     /**
-     * Records the tier for every image variant of {@code mediaData} and remembers the widest
-     * resolution each variant list published, which is what ORIGINAL resolves to.
+     * Records the tier for every image variant of {@code mediaData}, together with the
+     * published resolution each one serves, which is what a tier resolves against.
+     *
+     * <p>The tier is registered under <em>every</em> variant's identity rather than one shared
+     * identity. When the URL path carries a {@code NxN} token all variants collapse to a
+     * single identity anyway; when it does not, each candidate has its own filename and its
+     * own identity, and registering only the first would leave every other candidate -- which
+     * includes the one Ultra makes Instagram select -- unmatched.
      *
      * @param currentMediaIndex carousel position; ignored for single-image posts
      */
@@ -280,36 +358,40 @@ public final class PostImageQuality {
                 return;
             }
 
-            // Every variant of one image collapses to the same identity key, so this runs
-            // once per post rather than once per variant.
-            String identityKey = null;
-            int widest = 0;
+            List<Variant> published = new ArrayList<>();
+            List<String> identities = new ArrayList<>();
             for (Object element : variants) {
                 if (!(element instanceof ImageData)) continue;
                 ImageData variant = (ImageData) element;
 
                 String url = variant.getUrl();
-                if (url == null) continue;
-
-                if (identityKey == null) identityKey = identityKey(url);
+                if (url == null || url.isEmpty()) continue;
 
                 Integer variantWidth = variant.getWidth();
-                if (variantWidth != null && variantWidth > widest) widest = variantWidth;
+                int width = variantWidth == null || variantWidth <= 0 ? 0 : variantWidth;
+
+                published.add(new Variant(width, url));
+                identities.add(identityKey(url));
             }
 
-            if (identityKey == null) {
+            if (published.isEmpty()) {
                 PikoUtils.toast(str("piko_post_quality_no_image"));
                 return;
             }
 
-            // ORIGINAL is kept as a stored tier rather than deleted: rewriteUrl needs the
-            // entry present in order to look up the published width and undo the global
-            // Ultra clamp for this post. Deleting it here would make the choice a no-op.
-            TIERS.put(identityKey, tier);
-            MAX_WIDTHS.put(identityKey, widest);
+            int widest = 0;
+            for (Variant variant : published) widest = Math.max(widest, variant.width);
+
+            // ORIGINAL is stored as a tier like any other rather than deleted: rewriteUrl needs
+            // the entry present in order to look up the published variants and undo the global
+            // Ultra clamp for this post.
+            for (String identity : identities) {
+                TIERS.put(identity, tier);
+                VARIANTS.put(identity, published);
+            }
 
             debug("registered tier=" + tier + " widest=" + widest
-                    + " variants=" + variants.size() + " id=" + identityKey);
+                    + " variants=" + published.size() + " ids=" + identities.size());
 
             PikoUtils.toast(str("piko_post_quality_set") + " " + tierLabel(tier));
         } catch (Throwable t) {

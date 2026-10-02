@@ -10,6 +10,7 @@ import app.crimera.patches.instagram.misc.overflowMenuButton.posts.addOverflowMe
 import app.crimera.patches.instagram.misc.overflowMenuButton.posts.hookOverflowMenuButton
 import app.crimera.patches.instagram.misc.settings.settingsPatch
 import app.crimera.patches.instagram.utils.Constants.COMPATIBILITY_INSTAGRAM
+import app.crimera.patches.instagram.utils.Constants.EXTENDED_IMAGE_URL_CLASS
 import app.crimera.patches.instagram.utils.Constants.POST_IMAGE_QUALITY_DESCRIPTOR
 import app.crimera.patches.instagram.utils.enableSettings
 import app.morphe.patcher.Fingerprint
@@ -30,9 +31,18 @@ import com.android.tools.smali.dexlib2.Opcode
  * verified URL setter, whereas returning a different String needs nothing but a static method
  * that takes and returns one.
  *
- * If this resolves to more than one class, pin it down with definingClass.
+ * definingClass is not optional. Left unpinned, this resolved to
+ * `com.instagram.api.schemas.ProfilePicUrlInfoImpl.getUrl` -- a single match, so nothing
+ * complained, but an avatar schema POJO rather than the media pipeline's own URL holder. It
+ * sampled only profile pictures and never touched a feed photo, which reads as "no override
+ * registered" everywhere. `ExtendedImageUrl` is the per-variant type behind
+ * `image_versions2`, the same class ImproveImageViewingPatch already matches on the pinned
+ * version, and PhotoHider reaches feed photo URLs through the identical reflective
+ * `typedurl` field + `getUrl()` shape. Pinned here so this can never silently drift onto
+ * another `getUrl` again.
  */
 internal object ImageUrlGetUrlFingerprint : Fingerprint(
+    definingClass = EXTENDED_IMAGE_URL_CLASS,
     name = "getUrl",
     returnType = "Ljava/lang/String;",
     parameters = listOf(),
