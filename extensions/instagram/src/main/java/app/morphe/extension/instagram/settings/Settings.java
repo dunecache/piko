@@ -74,6 +74,7 @@ public class Settings {
     public static final BooleanSetting ULTRA_DATA_SAVER = new BooleanSetting("ultra_data_saver", false);
     public static final BooleanSetting ULTRA_BLOCK_FEED_AUTOPLAY = new BooleanSetting("ultra_block_feed_autoplay", true);
     public static final BooleanSetting ULTRA_BLOCK_REELS = new BooleanSetting("ultra_block_reels", true);
+    public static final BooleanSetting ULTRA_BLOCK_BG_PREFETCH = new BooleanSetting("ultra_block_bg_prefetch", true);
     public static final BooleanSetting ULTRA_BLOCK_STORIES = new BooleanSetting("ultra_block_stories", true);
     public static final BooleanSetting ULTRA_BLOCK_EXPLORE = new BooleanSetting("ultra_block_explore", true);
     public static final BooleanSetting ULTRA_LOW_RES_IMAGES = new BooleanSetting("ultra_low_res_images", true);

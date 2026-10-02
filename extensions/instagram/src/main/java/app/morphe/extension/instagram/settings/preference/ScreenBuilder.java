@@ -668,6 +668,13 @@ public class ScreenBuilder {
             );
             addPreference(
                     helper.switchPreference(
+                            str("piko_ultra_block_bg_prefetch"),
+                            str("piko_ultra_block_bg_prefetch_desc"),
+                            Settings.ULTRA_BLOCK_BG_PREFETCH
+                    )
+            );
+            addPreference(
+                    helper.switchPreference(
                             str("piko_ultra_low_res_images"),
                             str("piko_ultra_low_res_images_desc"),
                             Settings.ULTRA_LOW_RES_IMAGES

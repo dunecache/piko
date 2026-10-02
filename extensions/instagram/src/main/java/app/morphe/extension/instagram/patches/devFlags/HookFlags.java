@@ -7,9 +7,13 @@
 
 package app.morphe.extension.instagram.patches.devFlags;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Set;
+
+import android.util.Log;
 
 import app.morphe.extension.crimera.PikoUtils;
 import app.morphe.extension.instagram.entity.DeveloperOptions;
@@ -41,6 +45,53 @@ public class HookFlags {
             "56394::69",   // ig_android_direct_infra::run_reel_preload_bg
             "117144::3"    // ig_search_tentpole::android_enable_reels_autoplay
     );
+
+    /**
+     * Server flags that make the app download media with no screen open to show it. Forced on
+     * while the Ultra data saver's background prefetch part is on, because every one of them is
+     * named {@code disable_*} and therefore takes the opposite direction from the Reels set.
+     *
+     * <p>Deliberately excludes {@code 60096::0} (ig_android_disable_bg_prefetch), despite it
+     * being the broadest killswitch available and stable across all four mapped versions. It is
+     * named generically rather than for the feed, and Instagram demonstrably puts unrelated
+     * features under one experiment: {@code 56394::69} above lives in {@code
+     * ig_android_direct_infra}, the DM experiment, while controlling Reel preloading. So an
+     * experiment's name is no evidence of its scope, and this set is restricted to flags that
+     * name the feed outright.
+     *
+     * <p>If {@link #WATCHED_FLAGS} shows any of these being read from inside a DM thread, drop
+     * that one rather than relaxing the whole set.
+     */
+    private static final Set<String> ULTRA_BG_PREFETCH_KILL_FLAGS = Set.of(
+            "75561::30",   // ig_android_feed_background_prefetch_fbid::disable_media_prefetch
+            "46244::30",   // ig_android_launcher_mainfeed_background_prefetch::disable_feed_bg_prefetch_job
+            "86979::80"    // ig4a_delivery_homecoming::disable_homecoming_feed_prefetch
+    );
+
+    /**
+     * Flags whose reads are counted under the debug setting.
+     *
+     * <p>This exists to answer a question the mappings cannot: Instagram groups unrelated
+     * features under a single experiment ID, so the only way to know whether a prefetch flag is
+     * read from inside a DM thread is to watch it being read. Open DMs with debug on and the log
+     * shows which of these the messaging code paths actually consult.
+     */
+    private static final Set<String> WATCHED_FLAGS = Set.of(
+            "60096::0",    // ig_android_disable_bg_prefetch (excluded from the set above)
+            "46244::30",
+            "75561::30",
+            "86979::80",
+            "82544::21",   // ig4a_direct_thread_prefetch_optimizations::enable_video_prefetch
+            "94658::19",   // ig4a_direct_thread_to_clips_viewer_prefetch::disable_prefetch_clips_medias
+            "77351::100",  // ig_android_direct_cache::prefetch_message_media_in_second_page
+            "26104::6"     // ig_android_direct_inbox_snapshot_limits::scrolling_prefetch_distance
+    );
+
+    /** How many distinct watched flags to report before the log gets noisy. */
+    private static final int WATCH_LOG_LIMIT = 24;
+
+    private static final Map<String, Boolean> WATCH_HITS =
+            Collections.synchronizedMap(new LinkedHashMap<String, Boolean>(32, 0.75f, true));
 
     private static void simpleOverflowMenuFlags() {
         BOOL_FLAGS.put("104772", false); //ig_ini
@@ -104,11 +155,50 @@ public class HookFlags {
     }
 
     // Called via addFlags("ultraDataSaverFlags") from the Ultra data saver patch.
-    // The Reels preload/autoplay overrides live in handleBoolFlags instead: this map is
-    // populated once at app init, so anything put here would be frozen until a restart
-    // and the auto-metered mode would not apply without one.
+    // Every Ultra override lives in handleBoolFlags instead of this map: it is populated once at
+    // app init, so anything added here would be frozen until a restart and the auto-metered mode
+    // would not apply without one.
     @SuppressWarnings("unused")
     private static void ultraDataSaverFlags() {
+    }
+
+    /**
+     * Reports that {@code configId} was consulted, if it is one this build is watching.
+     *
+     * <p>Called on every flag read, so it bails out before touching anything unless debugging
+     * is on and the flag is actually interesting.
+     */
+    private static void watchFlag(String configId) {
+        try {
+            if (!WATCHED_FLAGS.contains(configId)) return;
+            if (!Pref.pikoDebug()) return;
+            if (WATCH_HITS.containsKey(configId)) return;
+            if (WATCH_HITS.size() >= WATCH_LOG_LIMIT) return;
+            WATCH_HITS.put(configId, Boolean.TRUE);
+            boolean ours = ULTRA_BG_PREFETCH_KILL_FLAGS.contains(configId);
+            Log.d("piko", "[flagWatch] read " + configId + (ours ? "  (Ultra forces this on)" : "")
+                    + "  seen so far: " + watchedFlagSummary());
+        } catch (Throwable ignored) {
+            // A diagnostic must never be able to break a flag read.
+        }
+    }
+
+    /** Snapshot of every watched flag seen so far, for dumping after reproducing a screen. */
+    public static String watchedFlagSummary() {
+        try {
+            if (!Pref.pikoDebug()) return "";
+            StringBuilder sb = new StringBuilder();
+            synchronized (WATCH_HITS) {
+                for (String id : WATCH_HITS.keySet()) {
+                    if (sb.length() > 0) sb.append(", ");
+                    sb.append(id);
+                }
+            }
+            return sb.toString();
+        } catch (Throwable t) {
+            PikoUtils.logger(t);
+            return "";
+        }
     }
 
     public static void load() {
@@ -129,10 +219,15 @@ public class HookFlags {
             // getConfigId(), which resolves it a second time through reflection on every
             // single flag check.
             String configId = universalId + "::" + developerOptionsItem.getParamId();
+            watchFlag(configId);
             // Set membership is tested before the preference is read: this method runs for
             // every flag read in the app, and reading SharedPreferences is not cached.
             if (ULTRA_REELS_KILL_FLAGS.contains(configId) && Pref.ultraBlockReels()) {
                 return false;
+            }
+            // Every flag here is disable_*, so this one takes true rather than false.
+            if (ULTRA_BG_PREFETCH_KILL_FLAGS.contains(configId) && Pref.ultraBlockBgPrefetch()) {
+                return true;
             }
             return BOOL_FLAGS.getOrDefault(configId, null);
         } catch (Exception e) {

@@ -143,6 +143,8 @@
     <string name="piko_ultra_block_feed_autoplay">Block feed video autoplay</string>
     <string name="piko_ultra_block_reels">Block Reels autoplay and prefetch</string>
     <string name="piko_ultra_block_reels_desc">Stops Reels from auto-playing and preloading the next videos. Swiping between Reels still works.</string>
+    <string name="piko_ultra_block_bg_prefetch">Block background prefetch</string>
+    <string name="piko_ultra_block_bg_prefetch_desc">Stops the feed from downloading photos and videos when no screen is open, including while the app is closed. Messages are not affected.</string>
     <string name="piko_ultra_block_stories">Block stories prefetch</string>
     <string name="piko_ultra_block_explore">Block explore prefetch</string>
     <string name="piko_ultra_low_res_images">Low-resolution images</string>

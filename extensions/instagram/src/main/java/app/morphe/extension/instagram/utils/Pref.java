@@ -353,6 +353,17 @@ public class Pref {
         return ultraDataSaver() && SharedPref.getBooleanPref(Settings.ULTRA_BLOCK_REELS);
     }
 
+    /**
+     * Background prefetch: feed media downloaded with no screen open to show it. Unlike the
+     * other Ultra parts this costs data with the app closed, and the user never sees the result.
+     *
+     * <p>Scope is deliberately limited to feed-scoped flags; DM and direct prefetch are a
+     * separate experiment family and are left alone so messages still arrive promptly.
+     */
+    public static boolean ultraBlockBgPrefetch() {
+        return ultraDataSaver() && SharedPref.getBooleanPref(Settings.ULTRA_BLOCK_BG_PREFETCH);
+    }
+
     public static boolean ultraBlockStories() {
         return ultraDataSaver() && SharedPref.getBooleanPref(Settings.ULTRA_BLOCK_STORIES);
     }
