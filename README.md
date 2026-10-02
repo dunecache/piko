@@ -210,6 +210,7 @@ To patch with Twitter/X version 11.88 to 12.4, you must include patches from ano
 | [Make ephemeral media permanent](#make-ephemeral-media-permanent) | Changes unexpired view once, view twice media to permanent view. |  |
 | [Mark chat as read manually](#mark-chat-as-read-manually) | Adds option to mark a thread aka message as read manually |  |
 | [More options on post](#more-options-on-post) | Adds an overflow menu button to get more options on post/reels, like copy description, copy username etc |  |
+| [Per-post image quality](#per-post-image-quality) | Adds an Image quality entry to a post's overflow menu, letting the resolution of that post's photos be picked from Ultra, Low, Medium or original independently of the global low-resolution setting. Takes effect the next time the photo is loaded. |  |
 | [More options on profile](#more-options-on-profile) | Adds a new button to handle user related data like copy handle, download profile picture etc |  |
 | [Open links externally](#open-links-externally) | Changes links to always open in your external browser, instead of the in-app browser. |  |
 | [Recommended flags](#recommended-flags) | Developer flags suggested by the community |  |

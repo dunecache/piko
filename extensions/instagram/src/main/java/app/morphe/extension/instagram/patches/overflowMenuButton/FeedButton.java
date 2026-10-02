@@ -12,6 +12,7 @@ import static app.morphe.extension.instagram.utils.IgStr.str;
 import java.util.ArrayList;
 import java.util.List;
 import android.content.Context;
+import android.util.Log;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Map;
@@ -31,12 +32,24 @@ import app.morphe.extension.instagram.entity.MediaData;
 import app.morphe.extension.instagram.constants.UI;
 import app.morphe.extension.instagram.patches.download.DownloadUtils;
 import app.morphe.extension.instagram.patches.feed.MoreOptionsOnPostPatch;
+import app.morphe.extension.instagram.patches.photos.PostImageQuality;
 import app.morphe.extension.instagram.settings.ActivityHook;
 
 import com.instagram.feed.media.mediaoption.MediaOption$Option;
 import com.instagram.common.session.UserSession;
 
 public class FeedButton {
+
+    private static final String TAG = "piko";
+
+    /** Debug line, gated on the Piko debug setting so release builds stay quiet. */
+    private static void logDebug(String message) {
+        try {
+            if (!Pref.pikoDebug()) return;
+            Log.d(TAG, "[menu] " + message);
+        } catch (Throwable ignored) {
+        }
+    }
 
     private static MediaOption$Option initOverflowButton(String tag, int randomIndex, String drawableResName){
         int drawableIconId = ResourceUtils.getIdentifier(ResourceType.DRAWABLE,drawableResName);
@@ -55,6 +68,9 @@ public class FeedButton {
         }
         if(SettingsStatus.downloadWithExternalDownloader){
             additionalButtonsList.add(MediaOption$Option.PIKO_EXTERNAL_DOWNLOADER);
+        }
+        if(SettingsStatus.ultraPostImageQuality){
+            additionalButtonsList.add(MediaOption$Option.PIKO_IMAGE_QUALITY);
         }
 
         int additionalButtonListSize = additionalButtonsList.size();
@@ -86,20 +102,45 @@ public class FeedButton {
     }
 
     private static void addButton(MediaOption$Option overflowButton, String overflowButtonText, Object buttonAdderObject, ArrayList buttonlist) throws Exception {
+        if (buttonAdderObject == null || buttonlist == null) {
+            logDebug("addButton skipped, adder=" + buttonAdderObject + " list=" + (buttonlist == null ? "null" : "size=" + buttonlist.size()));
+            return;
+        }
         Class<?> clazz = buttonAdderObject.getClass();
 
-        Method method = clazz.getDeclaredMethod(
-                "A00",
-                getEnumButtonClass(),
-                MediaOption$Option.class,
-                clazz,
-                CharSequence.class,
-                ArrayList.class,
-                boolean.class
-        );
+        // getDeclaredMethod only sees the exact runtime class. The menu builder is final on the
+        // pinned version so this normally hits first try, but if the object ever arrives as a
+        // subclass (or a wrapper), an exact lookup throws NoSuchMethodException and the row
+        // silently never appears -- which is exactly the failure this logging is here to catch.
+        Method method = findAdderMethod(clazz);
 
         method.setAccessible(true);
         method.invoke(null, enumNormalButton(), overflowButton, buttonAdderObject, overflowButtonText, buttonlist, false);
+        logDebug("added row '" + overflowButtonText + "' via " + clazz.getName());
+    }
+
+    /**
+     * The menu row appender, looked up by walking up the class hierarchy. The parameter list
+     * tracks each level because the third parameter is declared as the defining class itself.
+     */
+    private static Method findAdderMethod(Class<?> clazz) throws Exception {
+        Class<?> enumBtnClass = getEnumButtonClass();
+        for (Class<?> c = clazz; c != null; c = c.getSuperclass()) {
+            try {
+                return c.getDeclaredMethod(
+                        "A00",
+                        enumBtnClass,
+                        MediaOption$Option.class,
+                        c,
+                        CharSequence.class,
+                        ArrayList.class,
+                        boolean.class
+                );
+            } catch (NoSuchMethodException ignored) {
+                // Try the next level up.
+            }
+        }
+        throw new NoSuchMethodException("A00 row appender on " + clazz.getName());
     }
 
     public static MediaOption$Option downloadOverflowButton(){
@@ -118,6 +159,10 @@ public class FeedButton {
         return FeedButton.initOverflowButton("PIKO_EXTERNAL_DOWNLOADER", 503, UI.DRAWABLE_DOWNLOAD_ICON);
     }
 
+    public static MediaOption$Option imageQualityOverflowButton(){
+        return FeedButton.initOverflowButton("PIKO_IMAGE_QUALITY", 504, UI.DRAWABLE_COLLECTIONS_ICON);
+    }
+
 
     private static void addDownloadButton(Object buttonAdderObject, ArrayList buttonlist) throws Exception {
         String DOWNLOAD_BUTTON_TEXT = str("piko_download_options");
@@ -129,6 +174,10 @@ public class FeedButton {
 
     public static void addFeedOverflowButton(Object buttonAdderObject, ArrayList buttonlist){
         try {
+            logDebug("addFeedOverflowButton adder="
+                    + (buttonAdderObject == null ? "null" : buttonAdderObject.getClass().getName())
+                    + " list=" + (buttonlist == null ? "null" : "size=" + buttonlist.size())
+                    + " qualityFlag=" + SettingsStatus.ultraPostImageQuality);
             if(Pref.pikoDebug()){
                 addButton(MediaOption$Option.PIKO_DEBUG, str("piko_debug"), buttonAdderObject, buttonlist);
             }
@@ -141,6 +190,11 @@ public class FeedButton {
             if(Pref.moreOptionsOnPost()) {
                 addButton(MediaOption$Option.PIKO_MORE_POST_OPTION, str("piko_more_options"), buttonAdderObject, buttonlist);
             }
+            if (SettingsStatus.ultraPostImageQuality) {
+                addButton(MediaOption$Option.PIKO_IMAGE_QUALITY, str("piko_post_quality_title"), buttonAdderObject, buttonlist);
+            } else {
+                logDebug("image quality row skipped, ultraPostImageQuality flag is off");
+            }
         } catch (Exception e) {
             Logger.printException(() -> "Error at addReelButton",e);
         }
@@ -151,7 +205,8 @@ public class FeedButton {
                 pressedButton.equals(MediaOption$Option.PIKO_DEBUG) ||
                 (SettingsStatus.downloadMedia && pressedButton.equals(MediaOption$Option.PIKO_DOWNLOAD)) ||
                 (SettingsStatus.moreOptionsOnPost && pressedButton.equals(MediaOption$Option.PIKO_MORE_POST_OPTION)) ||
-                (SettingsStatus.downloadWithExternalDownloader && pressedButton.equals(MediaOption$Option.PIKO_EXTERNAL_DOWNLOADER))
+                (SettingsStatus.downloadWithExternalDownloader && pressedButton.equals(MediaOption$Option.PIKO_EXTERNAL_DOWNLOADER)) ||
+                (SettingsStatus.ultraPostImageQuality && pressedButton.equals(MediaOption$Option.PIKO_IMAGE_QUALITY))
         );
     }
 
@@ -168,6 +223,9 @@ public class FeedButton {
 
             } else if (SettingsStatus.downloadWithExternalDownloader && pressedButton.equals(MediaOption$Option.PIKO_EXTERNAL_DOWNLOADER)) {
                 DownloadUtils.externalDownloader(mediaObject,currentMediaIndex);
+
+            } else if (SettingsStatus.ultraPostImageQuality && pressedButton.equals(MediaOption$Option.PIKO_IMAGE_QUALITY)) {
+                PostImageQuality.showQualityDialog(context, mediaObject, userSession, currentMediaIndex);
 
             }
 
