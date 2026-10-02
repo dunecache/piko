@@ -1,3 +1,9 @@
+## [3.10.0-dev.9](https://github.com/dunecache/piko/compare/v3.10.0-dev.8...v3.10.0-dev.9) (2026-10-02)
+
+### 🔧 Improvements
+
+* **Instagram:** reach per-post quality from the post viewer ([f1b44b7](https://github.com/dunecache/piko/commit/f1b44b78adfaac78d64d897951a761e88a4fcd29))
+
 ## [3.10.0-dev.8](https://github.com/dunecache/piko/compare/v3.10.0-dev.7...v3.10.0-dev.8) (2026-10-02)
 
 ### 🐛 Bug Fixes
