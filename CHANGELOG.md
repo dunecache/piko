@@ -1,3 +1,9 @@
+## [3.10.0-dev.5](https://github.com/dunecache/piko/compare/v3.10.0-dev.4...v3.10.0-dev.5) (2026-10-02)
+
+### 🔧 Improvements
+
+* **Instagram:** block background prefetch in Ultra data saver ([7b373e8](https://github.com/dunecache/piko/commit/7b373e8efce05924a612f8231a7e58c8c9af42f7))
+
 ## [3.10.0-dev.4](https://github.com/dunecache/piko/compare/v3.10.0-dev.3...v3.10.0-dev.4) (2026-10-02)
 
 ### 🐛 Bug Fixes
