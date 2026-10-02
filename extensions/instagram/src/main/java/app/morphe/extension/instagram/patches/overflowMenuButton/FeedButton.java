@@ -137,7 +137,7 @@ public class FeedButton {
 
     public static void addFeedOverflowButton(Object buttonAdderObject, ArrayList buttonlist){
         try {
-            if(Pref.pikoDebug()){
+            if(SettingsStatus.pikoDebugOverflowButton && Pref.pikoDebug()){
                 addButton(MediaOption$Option.PIKO_DEBUG, str("piko_debug"), buttonAdderObject, buttonlist);
             }
             if(Pref.enableDownload()) {
@@ -159,7 +159,7 @@ public class FeedButton {
 
     public static boolean isCustomButtonPressed(MediaOption$Option pressedButton){
         return (
-                pressedButton.equals(MediaOption$Option.PIKO_DEBUG) ||
+                (SettingsStatus.pikoDebugOverflowButton && pressedButton.equals(MediaOption$Option.PIKO_DEBUG)) ||
                 (SettingsStatus.downloadMedia && pressedButton.equals(MediaOption$Option.PIKO_DOWNLOAD)) ||
                 (SettingsStatus.moreOptionsOnPost && pressedButton.equals(MediaOption$Option.PIKO_MORE_POST_OPTION)) ||
                 (SettingsStatus.downloadWithExternalDownloader && pressedButton.equals(MediaOption$Option.PIKO_EXTERNAL_DOWNLOADER)) ||
@@ -169,7 +169,7 @@ public class FeedButton {
 
     public static void customButtonOnClick(MediaOption$Option pressedButton, UserSession userSession, Context context, Object mediaObject, int currentMediaIndex){
         try{
-            if(pressedButton.equals(MediaOption$Option.PIKO_DEBUG)) {
+            if(SettingsStatus.pikoDebugOverflowButton && pressedButton.equals(MediaOption$Option.PIKO_DEBUG)) {
                 ObjectBrowser.browseObject(context, new MediaData(mediaObject, userSession));
 
             } else if (SettingsStatus.downloadMedia && pressedButton.equals(MediaOption$Option.PIKO_DOWNLOAD)) {

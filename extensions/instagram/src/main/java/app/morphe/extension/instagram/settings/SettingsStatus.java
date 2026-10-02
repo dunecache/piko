@@ -208,6 +208,8 @@ public class SettingsStatus {
     public static void ultraHidePhotos() { ultraHidePhotos = true; }
     public static boolean ultraPostImageQuality = false;
     public static void ultraPostImageQuality() { ultraPostImageQuality = true; }
+    public static boolean pikoDebugOverflowButton = false;
+    public static void pikoDebugOverflowButton() { pikoDebugOverflowButton = true; }
     public static boolean moreOptionsOnPost = false;
     public static void moreOptionsOnPost() { moreOptionsOnPost = true; }
     public static boolean moreOptionsOnProfile = false;
