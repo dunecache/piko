@@ -30,6 +30,7 @@ import app.morphe.extension.instagram.entity.Entity;
 import app.morphe.extension.instagram.entity.MediaData;
 import app.morphe.extension.instagram.constants.UI;
 import app.morphe.extension.instagram.patches.download.DownloadUtils;
+import app.morphe.extension.instagram.patches.photos.PostImageQuality;
 import app.morphe.extension.instagram.patches.feed.MoreOptionsOnPostPatch;
 import app.morphe.extension.instagram.settings.ActivityHook;
 
@@ -55,6 +56,9 @@ public class FeedButton {
         }
         if(SettingsStatus.downloadWithExternalDownloader){
             additionalButtonsList.add(MediaOption$Option.PIKO_EXTERNAL_DOWNLOADER);
+        }
+        if(SettingsStatus.ultraPostImageQuality){
+            additionalButtonsList.add(MediaOption$Option.PIKO_IMAGE_QUALITY);
         }
 
         int additionalButtonListSize = additionalButtonsList.size();
@@ -118,6 +122,10 @@ public class FeedButton {
         return FeedButton.initOverflowButton("PIKO_EXTERNAL_DOWNLOADER", 503, UI.DRAWABLE_DOWNLOAD_ICON);
     }
 
+    public static MediaOption$Option imageQualityOverflowButton(){
+        return FeedButton.initOverflowButton("PIKO_IMAGE_QUALITY", 504, UI.DRAWABLE_COLLECTIONS_ICON);
+    }
+
 
     private static void addDownloadButton(Object buttonAdderObject, ArrayList buttonlist) throws Exception {
         String DOWNLOAD_BUTTON_TEXT = str("piko_download_options");
@@ -141,6 +149,9 @@ public class FeedButton {
             if(Pref.moreOptionsOnPost()) {
                 addButton(MediaOption$Option.PIKO_MORE_POST_OPTION, str("piko_more_options"), buttonAdderObject, buttonlist);
             }
+            if (SettingsStatus.ultraPostImageQuality) {
+                addButton(MediaOption$Option.PIKO_IMAGE_QUALITY, str("piko_post_quality_title"), buttonAdderObject, buttonlist);
+            }
         } catch (Exception e) {
             Logger.printException(() -> "Error at addReelButton",e);
         }
@@ -151,7 +162,8 @@ public class FeedButton {
                 pressedButton.equals(MediaOption$Option.PIKO_DEBUG) ||
                 (SettingsStatus.downloadMedia && pressedButton.equals(MediaOption$Option.PIKO_DOWNLOAD)) ||
                 (SettingsStatus.moreOptionsOnPost && pressedButton.equals(MediaOption$Option.PIKO_MORE_POST_OPTION)) ||
-                (SettingsStatus.downloadWithExternalDownloader && pressedButton.equals(MediaOption$Option.PIKO_EXTERNAL_DOWNLOADER))
+                (SettingsStatus.downloadWithExternalDownloader && pressedButton.equals(MediaOption$Option.PIKO_EXTERNAL_DOWNLOADER)) ||
+                (SettingsStatus.ultraPostImageQuality && pressedButton.equals(MediaOption$Option.PIKO_IMAGE_QUALITY))
         );
     }
 
@@ -168,6 +180,9 @@ public class FeedButton {
 
             } else if (SettingsStatus.downloadWithExternalDownloader && pressedButton.equals(MediaOption$Option.PIKO_EXTERNAL_DOWNLOADER)) {
                 DownloadUtils.externalDownloader(mediaObject,currentMediaIndex);
+
+            } else if (SettingsStatus.ultraPostImageQuality && pressedButton.equals(MediaOption$Option.PIKO_IMAGE_QUALITY)) {
+                PostImageQuality.showQualityDialog(context, mediaObject, userSession, currentMediaIndex);
 
             }
 
