@@ -1,3 +1,9 @@
+## [3.10.0-dev.1](https://github.com/dunecache/piko/compare/v3.9.0...v3.10.0-dev.1) (2026-10-02)
+
+### ✨ New Features
+
+* **Instagram:** add per-post image quality with hardened menu injection ([638d4a9](https://github.com/dunecache/piko/commit/638d4a9da55a345071301e8cdfe0059078d3c67f))
+
 ## [3.9.0](https://github.com/crimera/piko/compare/v3.8.0...v3.9.0) (2026-08-31)
 
 ### 🐛 Bug Fixes

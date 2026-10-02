@@ -69,7 +69,7 @@ To patch with Twitter/X version 11.88 to 12.4, you must include patches from ano
 ## ⚙️ Patch Details
 
 <!-- PATCHES_START -->
-> **[v3.9.0](https://github.com/crimera/piko/releases/tag/v3.9.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;133 patches total
+> **[v3.10.0-dev.1](https://github.com/dunecache/piko/releases/tag/v3.10.0-dev.1)**&nbsp;&nbsp;•&nbsp;&nbsp;`dev`&nbsp;&nbsp;•&nbsp;&nbsp;134 patches total
 <details>
 <summary>📦 Twitter&nbsp;&nbsp;•&nbsp;&nbsp;74 patches</summary>
 <br>
@@ -159,7 +159,7 @@ To patch with Twitter/X version 11.88 to 12.4, you must include patches from ano
 </details>
 
 <details>
-<summary>📦 Instagram&nbsp;&nbsp;•&nbsp;&nbsp;59 patches</summary>
+<summary>📦 Instagram&nbsp;&nbsp;•&nbsp;&nbsp;60 patches</summary>
 <br>
 
 **🎯 Supported versions:**
@@ -210,9 +210,9 @@ To patch with Twitter/X version 11.88 to 12.4, you must include patches from ano
 | [Make ephemeral media permanent](#make-ephemeral-media-permanent) | Changes unexpired view once, view twice media to permanent view. |  |
 | [Mark chat as read manually](#mark-chat-as-read-manually) | Adds option to mark a thread aka message as read manually |  |
 | [More options on post](#more-options-on-post) | Adds an overflow menu button to get more options on post/reels, like copy description, copy username etc |  |
-| [Per-post image quality](#per-post-image-quality) | Adds an Image quality entry to a post's overflow menu, letting the resolution of that post's photos be picked from Ultra, Low, Medium or original independently of the global low-resolution setting. Takes effect the next time the photo is loaded. |  |
 | [More options on profile](#more-options-on-profile) | Adds a new button to handle user related data like copy handle, download profile picture etc |  |
 | [Open links externally](#open-links-externally) | Changes links to always open in your external browser, instead of the in-app browser. |  |
+| [Per-post image quality](#per-post-image-quality) | Adds an Image quality entry to a post's overflow menu, letting the resolution of that post's photos be picked from Ultra, Low, Medium or original independently of the global low-resolution setting. Takes effect the next time the photo is loaded. |  |
 | [Recommended flags](#recommended-flags) | Developer flags suggested by the community |  |
 | [Remove build expired popup](#remove-build-expired-popup) | Removes the popup that appears after a while, when the app version ages. |  |
 | [Remove empty bottom space](#remove-empty-bottom-space) | Removes empty space below bottom navigation bar |  |
