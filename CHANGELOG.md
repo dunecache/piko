@@ -1,3 +1,9 @@
+## [3.10.0-dev.8](https://github.com/dunecache/piko/compare/v3.10.0-dev.7...v3.10.0-dev.8) (2026-10-02)
+
+### 🐛 Bug Fixes
+
+* **Instagram:** hook the real image URL accessor for per-post quality ([54c4f2b](https://github.com/dunecache/piko/commit/54c4f2be207e602fa507203c50cce161150958c0))
+
 ## [3.10.0-dev.7](https://github.com/dunecache/piko/compare/v3.10.0-dev.6...v3.10.0-dev.7) (2026-10-02)
 
 ### 🐛 Bug Fixes
