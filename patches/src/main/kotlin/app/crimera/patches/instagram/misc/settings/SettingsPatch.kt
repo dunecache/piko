@@ -91,7 +91,6 @@ val settingsPatch =
                     
                     ${SSTS_DESCRIPTOR.format("load")}
                     ${LOAD_FLAGS_DESCRIPTOR.format("load")}
-                    ${LOAD_FLAGS_DESCRIPTOR.format("load")}
                     invoke-static {}, $CONSTANTS_DESCRIPTOR/Constants;->load()V
                     """.trimIndent(),
                 )

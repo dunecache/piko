@@ -144,8 +144,7 @@ public class Links {
                 } else if (path.contains("/feed/reels_tray/")
                         || path.contains("feed/get_latest_reel_media/")
                         || path.contains("direct_v2/pending_inbox/?visual_message")
-                        || path.contains("stories/hallpass/")
-                        || path.contains("/api/v1/feed/reels_media_stream/")) {
+                        || path.contains("stories/hallpass/")) {
                     shouldBlockUri = DISABLE_STORIES || FocusLock.isForced(Settings.DISABLE_STORIES) || Pref.ultraBlockStories();
                 } else if (path.contains("/discover/topical_explore")
                         || path.contains("/discover/topical_explore_stream")
@@ -163,7 +162,7 @@ public class Links {
                         || path.contains("/async_ads/")
                         || path.contains("/feed/injected_reels_media/")
                         || path.contains("/api/v1/ads/graphql/")) {
-                    shouldBlockUri = DISABLE_ADS || Pref.ultraBlockReels();
+                    shouldBlockUri = DISABLE_ADS;
                 } else if (path.contains("/highlights_tray")) {
                     shouldBlockUri = DISABLE_HIGHLIGHTS || FocusLock.isForced(Settings.DISABLE_HIGHLIGHTS);
                 }

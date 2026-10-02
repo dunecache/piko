@@ -10,7 +10,6 @@ import app.crimera.patches.instagram.links.interceptUriPatch
 import app.crimera.patches.instagram.misc.disableVideoAutoplay.disableVideoAutoplayPatch
 import app.crimera.patches.instagram.misc.hookFlags.hookFlagsPatch
 import app.crimera.patches.instagram.misc.improveImageViewing.improveImageViewingPatch
-import app.crimera.patches.instagram.misc.reels.disableReelsScrollingPatch
 import app.crimera.patches.instagram.misc.settings.settingsPatch
 import app.crimera.patches.instagram.utils.Constants.COMPATIBILITY_INSTAGRAM
 import app.crimera.patches.instagram.utils.addFlags
@@ -30,7 +29,6 @@ val ultraDataSaverPatch =
             hookFlagsPatch,
             interceptUriPatch,
             disableVideoAutoplayPatch,
-            disableReelsScrollingPatch,
             improveImageViewingPatch,
         )
         execute {

@@ -23,6 +23,25 @@ public class HookFlags {
     private static Map<String, Long> LONG_FLAGS = new HashMap<>();
     private static DeveloperOptions developerOptions = new DeveloperOptions();
 
+    /**
+     * Server flags that make Reels spend data on their own, forced off while the Ultra data
+     * saver's Reels part is on. All four preload or autoplay video, and all four fail safe:
+     * turning them off can only stop a download, never start one.
+     *
+     * IDs verified against docs/mappings/439.0.0.37.89.json and stable across 426, 430 and
+     * 435. Keyed as universalId::paramId, matching DeveloperOptionsItem.getConfigId().
+     *
+     * Note the neighbouring fields of 96015 are inverted ({@code disable_preload_on_first_reel},
+     * {@code disable_preload_on_tap_stories}) — writing false there would ENABLE preloading,
+     * so they are deliberately absent.
+     */
+    private static final Set<String> ULTRA_REELS_KILL_FLAGS = Set.of(
+            "96015::0",    // android_video_playback_reels_preload::enable_adjacent_video_preload
+            "119702::0",   // ig4a_clips_video_player::enable_adjacent_player_warmup
+            "56394::69",   // ig_android_direct_infra::run_reel_preload_bg
+            "117144::3"    // ig_search_tentpole::android_enable_reels_autoplay
+    );
+
     private static void simpleOverflowMenuFlags() {
         BOOL_FLAGS.put("104772", false); //ig_ini
         BOOL_FLAGS.put("117613::0", true); //ig_overflow_menu_icon::use_more_lines_icon
@@ -85,15 +104,11 @@ public class HookFlags {
     }
 
     // Called via addFlags("ultraDataSaverFlags") from the Ultra data saver patch.
-    // Master-gated: sub-toggles are checked through Pref so the user can re-enable
-    // individual parts while keeping the master switch on.
-    // Note: no hardcoded autoplay/prefetch flag IDs yet — those need to be mined
-    // from docs/mappings/439.0.0.37.89.json against the pinned APK and validated,
-    // otherwise a wrong ID silently changes unrelated behaviour. Network-level
-    // blocking lives in Links.interceptUri; image downscaling in Pref.improveImageViewing.
+    // The Reels preload/autoplay overrides live in handleBoolFlags instead: this map is
+    // populated once at app init, so anything put here would be frozen until a restart
+    // and the auto-metered mode would not apply without one.
     @SuppressWarnings("unused")
     private static void ultraDataSaverFlags() {
-        if (!Pref.ultraDataSaver()) return;
     }
 
     public static void load() {
@@ -110,7 +125,15 @@ public class HookFlags {
             Boolean universalFlag = BOOL_FLAGS.getOrDefault(universalId, null);
             if(universalFlag!=null) return universalFlag;
 
-            String configId = developerOptionsItem.getConfigId();
+            // Built from the universalId already resolved above rather than via
+            // getConfigId(), which resolves it a second time through reflection on every
+            // single flag check.
+            String configId = universalId + "::" + developerOptionsItem.getParamId();
+            // Set membership is tested before the preference is read: this method runs for
+            // every flag read in the app, and reading SharedPreferences is not cached.
+            if (ULTRA_REELS_KILL_FLAGS.contains(configId) && Pref.ultraBlockReels()) {
+                return false;
+            }
             return BOOL_FLAGS.getOrDefault(configId, null);
         } catch (Exception e) {
             PikoUtils.logger(e);

@@ -165,7 +165,7 @@ public class Pref {
     }
 
     public static boolean disableReelsScrolling() {
-        return (lockable(Settings.DISABLE_REELS_SCROLLING) && SettingsStatus.disableReelsScrolling) || ultraBlockReels();
+        return lockable(Settings.DISABLE_REELS_SCROLLING) && SettingsStatus.disableReelsScrolling;
     }
 
     public static boolean disableSwipeToCreate() {
