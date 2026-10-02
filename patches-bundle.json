@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-10-02T17:43:31",
-  "description": "## [3.10.0-dev.5](https://github.com/dunecache/piko/compare/v3.10.0-dev.4...v3.10.0-dev.5) (2026-10-02)\n\n### 🔧 Improvements\n\n* **Instagram:** block background prefetch in Ultra data saver ([7b373e8](https://github.com/dunecache/piko/commit/7b373e8efce05924a612f8231a7e58c8c9af42f7))",
-  "download_url": "https://github.com/dunecache/piko/releases/download/v3.10.0-dev.5/patches-3.10.0-dev.5.mpp",
-  "signature_download_url": "https://github.com/dunecache/piko/releases/download/v3.10.0-dev.5/patches-3.10.0-dev.5.mpp.asc",
-  "version": "3.10.0-dev.5"
+  "created_at": "2026-10-02T19:02:53",
+  "description": "## [3.10.0-dev.6](https://github.com/dunecache/piko/compare/v3.10.0-dev.5...v3.10.0-dev.6) (2026-10-02)\n\n### 🔧 Improvements\n\n* **Instagram:** add post viewer menu discovery diagnostic ([afce8ce](https://github.com/dunecache/piko/commit/afce8ce83e659727a58956e087227e7270703fd5))",
+  "download_url": "https://github.com/dunecache/piko/releases/download/v3.10.0-dev.6/patches-3.10.0-dev.6.mpp",
+  "signature_download_url": "https://github.com/dunecache/piko/releases/download/v3.10.0-dev.6/patches-3.10.0-dev.6.mpp.asc",
+  "version": "3.10.0-dev.6"
 }

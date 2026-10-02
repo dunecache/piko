@@ -1,3 +1,9 @@
+## [3.10.0-dev.6](https://github.com/dunecache/piko/compare/v3.10.0-dev.5...v3.10.0-dev.6) (2026-10-02)
+
+### 🔧 Improvements
+
+* **Instagram:** add post viewer menu discovery diagnostic ([afce8ce](https://github.com/dunecache/piko/commit/afce8ce83e659727a58956e087227e7270703fd5))
+
 ## [3.10.0-dev.5](https://github.com/dunecache/piko/compare/v3.10.0-dev.4...v3.10.0-dev.5) (2026-10-02)
 
 ### 🔧 Improvements
