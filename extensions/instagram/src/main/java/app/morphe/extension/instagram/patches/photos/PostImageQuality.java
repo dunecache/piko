@@ -27,6 +27,7 @@ import app.morphe.extension.crimera.PikoUtils;
 import app.morphe.extension.instagram.entity.ImageData;
 import app.morphe.extension.instagram.entity.InstagramDialogBox;
 import app.morphe.extension.instagram.entity.MediaData;
+import app.morphe.extension.instagram.patches.discovery.ViewerMenuDiscovery;
 import app.morphe.extension.instagram.utils.Pref;
 
 /**
@@ -147,7 +148,8 @@ public final class PostImageQuality {
             int query = path.indexOf('?');
             if (query >= 0) path = path.substring(0, query);
             debug("sample path=" + path
-                    + " token=" + (SIZE_TOKEN.matcher(path).find() ? "yes" : "NONE"));
+                    + " token=" + (SIZE_TOKEN.matcher(path).find() ? "yes" : "NONE")
+                    + ViewerMenuDiscovery.describeCallSite());
         } catch (Throwable ignored) {
         }
     }

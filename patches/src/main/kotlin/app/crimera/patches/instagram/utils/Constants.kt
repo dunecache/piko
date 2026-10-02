@@ -73,4 +73,5 @@ object Constants {
     const val COMMENT_BUTTON_EXTENSION_CLASS = "${PATCHES_DESCRIPTOR}/comment"
     const val PHOTO_HIDER_DESCRIPTOR = "$PATCHES_DESCRIPTOR/photos/PhotoHider;"
     const val POST_IMAGE_QUALITY_DESCRIPTOR = "$PATCHES_DESCRIPTOR/photos/PostImageQuality;"
+    const val VIEWER_MENU_DISCOVERY_DESCRIPTOR = "$PATCHES_DESCRIPTOR/discovery/ViewerMenuDiscovery;"
 }
