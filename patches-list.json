@@ -1,6 +1,6 @@
 {
   "NOTE": "Do NOT manually edit this file. This file is automatically updated when semantic release (release.yml) runs. Manually editing this file can break your releases and break third party tools that use this file.",
-  "version": "3.10.0-dev.3",
+  "version": "3.10.0-dev.4",
   "patches": [
     {
       "name": "Add ability to copy media link",
@@ -111,8 +111,7 @@
       "default": true,
       "dependencies": [
         "BytecodePatch",
-        "BytecodePatch",
-        "ResourcePatch"
+        "BytecodePatch"
       ],
       "compatiblePackages": [
         {
@@ -140,8 +139,7 @@
       "description": "Blocks the 'This app is out of date' update screen from being shown on launch",
       "default": true,
       "dependencies": [
-        "BytecodePatch",
-        "ResourcePatch"
+        "BytecodePatch"
       ],
       "compatiblePackages": [
         {
@@ -423,7 +421,6 @@
         "BytecodePatch",
         "BytecodePatch",
         "BytecodePatch",
-        "ResourcePatch",
         "BytecodePatch",
         "BytecodePatch"
       ],
@@ -690,8 +687,7 @@
       "description": null,
       "default": true,
       "dependencies": [
-        "BytecodePatch",
-        "ResourcePatch"
+        "BytecodePatch"
       ],
       "compatiblePackages": [
         {
@@ -1517,7 +1513,6 @@
       "default": true,
       "dependencies": [
         "BytecodePatch",
-        "ResourcePatch",
         "BytecodePatch",
         "BytecodePatch"
       ],
@@ -2462,8 +2457,7 @@
       "description": "Hides notes tray in DM section",
       "default": true,
       "dependencies": [
-        "BytecodePatch",
-        "ResourcePatch"
+        "BytecodePatch"
       ],
       "compatiblePackages": [
         {
@@ -2637,8 +2631,7 @@
       "description": "Hides the reshare button from both posts and reels.",
       "default": true,
       "dependencies": [
-        "BytecodePatch",
-        "ResourcePatch"
+        "BytecodePatch"
       ],
       "compatiblePackages": [
         {
@@ -2668,8 +2661,7 @@
       "description": "Hides stories tray from main feed.",
       "default": true,
       "dependencies": [
-        "BytecodePatch",
-        "ResourcePatch"
+        "BytecodePatch"
       ],
       "compatiblePackages": [
         {
@@ -2758,7 +2750,6 @@
       "description": "Adds an feature to export and import the token of accounts. This is useful when logging in on your second device or when re-installing piko.",
       "default": true,
       "dependencies": [
-        "ResourcePatch",
         "BytecodePatch",
         "ResourcePatch"
       ],
@@ -2998,7 +2989,6 @@
       "default": true,
       "dependencies": [
         "BytecodePatch",
-        "ResourcePatch",
         "ResourcePatch",
         "BytecodePatch",
         "BytecodePatch"
@@ -3278,6 +3268,37 @@
       "options": []
     },
     {
+      "name": "Per-post image quality",
+      "description": "Adds an Image quality entry to a post's overflow menu, letting the resolution of that post's photos be picked from Ultra, Low, Medium or original independently of the global low-resolution setting. Takes effect the next time the photo is loaded.",
+      "default": false,
+      "dependencies": [
+        "BytecodePatch",
+        "BytecodePatch"
+      ],
+      "compatiblePackages": [
+        {
+          "packageName": "com.instagram.android",
+          "name": "Instagram",
+          "description": null,
+          "apkFileType": "APKM",
+          "appIconColor": "#FC483C",
+          "signatures": null,
+          "targets": [
+            {
+              "version": "439.0.0.37.89",
+              "versionCodes": {
+                "ARM64_V8A": 384510827
+              },
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Recommended flags",
       "description": "Developer flags suggested by the community",
       "default": true,
@@ -3517,8 +3538,7 @@
       "description": "Enable or disable rounding off numbers",
       "default": true,
       "dependencies": [
-        "BytecodePatch",
-        "ResourcePatch"
+        "BytecodePatch"
       ],
       "compatiblePackages": [
         {
@@ -3613,7 +3633,6 @@
         "BytecodePatch",
         "BytecodePatch",
         "BytecodePatch",
-        "ResourcePatch",
         "BytecodePatch",
         "BytecodePatch"
       ],
@@ -3790,8 +3809,7 @@
       "description": null,
       "default": true,
       "dependencies": [
-        "BytecodePatch",
-        "ResourcePatch"
+        "BytecodePatch"
       ],
       "compatiblePackages": [
         {
@@ -3852,7 +3870,6 @@
       "dependencies": [
         "BytecodePatch",
         "BytecodePatch",
-        "ResourcePatch",
         "BytecodePatch"
       ],
       "compatiblePackages": [
@@ -3893,7 +3910,6 @@
       "description": "Master data-saving mode for limited connections: blocks feed and Reels autoplay, stories and explore prefetch, and loads low-resolution images. Each part can be toggled in Piko settings, with optional auto-enable on metered connections.",
       "default": false,
       "dependencies": [
-        "BytecodePatch",
         "BytecodePatch",
         "BytecodePatch",
         "BytecodePatch",

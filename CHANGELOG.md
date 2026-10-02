@@ -1,3 +1,36 @@
+## [3.10.0-dev.4](https://github.com/dunecache/piko/compare/v3.10.0-dev.3...v3.10.0-dev.4) (2026-10-02)
+
+### 🐛 Bug Fixes
+
+* **fork:** correct release artifacts and add missing improve release rule ([1e9f35a](https://github.com/dunecache/piko/commit/1e9f35a7bc1f7f178861cb9e4786468e1e318435))
+* **Instagram:** add auto-scroll persistence flag to recommended flags ([#1957](https://github.com/dunecache/piko/issues/1957)) ([096ea87](https://github.com/dunecache/piko/commit/096ea8738d2edae3bf1d47aa8404822e6d4ccc5d)), closes [#1746](https://github.com/dunecache/piko/issues/1746)
+* **Instagram:** fix build of per-post image quality ([7687f75](https://github.com/dunecache/piko/commit/7687f75b35b027fce7cd1c770a92718179636c44))
+* **Instagram:** invoke reflected methods on the correct receiver ([#1960](https://github.com/dunecache/piko/issues/1960)) ([e4a9464](https://github.com/dunecache/piko/commit/e4a9464792f8990a003a9289fe75243f6a54fa48))
+* **Instagram:** make the Ultra data saver Reels toggle actually save data ([f0505f0](https://github.com/dunecache/piko/commit/f0505f0fa8cab8bb27738bc22f8c733ae3148ffc))
+* **Instagram:** Refine Focus Lock highlight and slider spacing ([#1982](https://github.com/dunecache/piko/issues/1982)) ([c5b8ca5](https://github.com/dunecache/piko/commit/c5b8ca5855b04706d86b20de89752780c36a7aa6))
+* **Instagram:** remove forced HDR brightness on photos and Reels ([#1955](https://github.com/dunecache/piko/issues/1955)) ([0084136](https://github.com/dunecache/piko/commit/0084136b5ded2210e03d14dceabb09013be1cb3a)), closes [#1817](https://github.com/dunecache/piko/issues/1817)
+
+### ✨ New Features
+
+* **Instagram:** Add `Focus Lock` patch ([#1928](https://github.com/dunecache/piko/issues/1928)) ([2b6b5ac](https://github.com/dunecache/piko/commit/2b6b5ac21cb199f40a4e6dfc0dc76c36992fe31f))
+* **Instagram:** add custom font support ([#1920](https://github.com/dunecache/piko/issues/1920)) ([065bb95](https://github.com/dunecache/piko/commit/065bb95ad626b05c1d11e7ba64698e4e313ce81b))
+* **Instagram:** add per-post image quality ([da8fb19](https://github.com/dunecache/piko/commit/da8fb194edb7f43eca496b118bb7b93acb84a43b))
+* **Instagram:** Customize download filenames ([#1923](https://github.com/dunecache/piko/issues/1923)) ([8507022](https://github.com/dunecache/piko/commit/850702242069fab700d6382ec4287d95f4e1f722))
+* **Instagram:** Lock any distraction free setting with Focus Lock ([#1953](https://github.com/dunecache/piko/issues/1953)) ([97ea429](https://github.com/dunecache/piko/commit/97ea42941f25a68e8fd1080852a576b0b80cd134))
+* **Instagram:** Show non-followers in the Following list ([#1978](https://github.com/dunecache/piko/issues/1978)) ([f2395c9](https://github.com/dunecache/piko/commit/f2395c9c84ccc989771701d6b27bd556c949274c)), closes [#1899](https://github.com/dunecache/piko/issues/1899)
+
+### 🔧 Improvements
+
+* **Instagram:** Add random like animations and previews ([#1980](https://github.com/dunecache/piko/issues/1980)) ([f544987](https://github.com/dunecache/piko/commit/f54498748f8ddf9051b443c396ce46235cd047e0))
+* **Instagram:** Clarify settings row highlight behavior ([#1989](https://github.com/dunecache/piko/issues/1989)) ([40e1086](https://github.com/dunecache/piko/commit/40e108645d273402c0964e6b83b9f32ae9127cf5))
+* **Instagram:** fix N+1 query when opening Deleted Messages ([#1965](https://github.com/dunecache/piko/issues/1965)) ([bdc8d10](https://github.com/dunecache/piko/commit/bdc8d10fb11c3809fd9a87aed2ab1269c2ce40ca))
+* **Instagram:** Hide suggested profiles ([#1917](https://github.com/dunecache/piko/issues/1917)) ([c6ea8c4](https://github.com/dunecache/piko/commit/c6ea8c4013cb22fa52f661acb7a83d88b6e54a18))
+* **Instagram:** Refine profile button styles and spacing ([#1990](https://github.com/dunecache/piko/issues/1990)) ([e2dafdc](https://github.com/dunecache/piko/commit/e2dafdc02367cd66def5b5096aae587ed567c327))
+* **Instagram:** Simplify option dialogs and add close buttons ([#1954](https://github.com/dunecache/piko/issues/1954)) ([1560f8e](https://github.com/dunecache/piko/commit/1560f8e1024bf613276589d2897574d1c82856f3))
+* **Instagram:** Use avatar badges in follow lists ([#1986](https://github.com/dunecache/piko/issues/1986)) ([51e334c](https://github.com/dunecache/piko/commit/51e334cd6d430c445cb59944729fe20695acf97e))
+* **Twitter:** fail with a clear error in share menu button hook ([#1958](https://github.com/dunecache/piko/issues/1958)) ([9a2ac39](https://github.com/dunecache/piko/commit/9a2ac39cde6e61042c9fd270ad872a8f77c7d755))
+* **utils:** fail with a clear error when string sentinel/index lookups miss ([#1959](https://github.com/dunecache/piko/issues/1959)) ([22cb283](https://github.com/dunecache/piko/commit/22cb283751a467aa241edb7de368350f1f24095e))
+
 ## [3.10.0-dev.9](https://github.com/crimera/piko/compare/v3.10.0-dev.8...v3.10.0-dev.9) (2026-09-29)
 
 ### 🐛 Bug Fixes
