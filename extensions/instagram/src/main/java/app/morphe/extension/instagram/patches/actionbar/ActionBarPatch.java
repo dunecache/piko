@@ -11,6 +11,7 @@ import static app.morphe.extension.instagram.utils.IgStr.str;
 
 import android.app.Activity;
 import android.content.Context;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -23,6 +24,7 @@ import app.morphe.extension.instagram.settings.SettingsStatus;
 import app.morphe.extension.instagram.constants.UI;
 import app.morphe.extension.instagram.entity.ProfileInfo;
 import app.morphe.extension.instagram.patches.userprofile.ProfileMoreOption;
+import app.morphe.extension.instagram.patches.photos.PostImageQuality;
 import app.morphe.extension.instagram.patches.dm.SavedMessagesHook;
 import app.morphe.extension.instagram.entity.UserData;
 import app.morphe.extension.instagram.constants.Constants;
@@ -36,6 +38,13 @@ import com.instagram.common.session.UserSession;
 public class ActionBarPatch {
 
     private static final Set<ImageView> GHOST_MODE_ICONS = Collections.newSetFromMap(new WeakHashMap<>());
+
+    /**
+     * Bars that already carry our quality button. The bind hook can run again for a recycled
+     * row, and without this the icon would stack once per rebind.
+     */
+    private static final Set<ViewGroup> QUALITY_BUTTON_BARS =
+            Collections.newSetFromMap(new WeakHashMap<ViewGroup, Boolean>());
 
     private static void updateGhostModeIcons(boolean enabled) {
         String icon = enabled ? UI.DRAWABLE_EYE_STROKE_ICON : UI.DRAWABLE_EYE_ICON;
@@ -84,6 +93,24 @@ public class ActionBarPatch {
 
             if(pref.contains(Constants.AB_SETTINGS_ICON)) {
                 UI.pikoSettingsGear(viewGroup);
+            }
+
+            if (SettingsStatus.ultraPostImageQuality && QUALITY_BUTTON_BARS.add(viewGroup)) {
+                try {
+                    if (Pref.pikoDebug()) {
+                        Log.d("piko", "[menu] quality action-bar button on "
+                                + viewGroup.getClass().getName());
+                    }
+                } catch (Throwable ignored) {
+                }
+                final ViewGroup bar = viewGroup;
+                UI.addImageViewToViewGroup(viewGroup, UI.DRAWABLE_COLLECTIONS_ICON,
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                PostImageQuality.openQualitySheet(bar);
+                            }
+                        });
             }
 
         } catch (Exception e) {

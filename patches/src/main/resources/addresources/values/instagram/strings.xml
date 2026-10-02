@@ -178,6 +178,7 @@
     <string name="piko_post_quality_medium">Medium (720px)</string>
     <string name="piko_post_quality_original">Original</string>
     <string name="piko_post_quality_set">Image quality set to</string>
+    <string name="piko_post_quality_hint">Applies to this post the next time its photos load</string>
     <string name="piko_post_quality_no_image">This post has no photos</string>
 
     <!-- Navigation Section -->

@@ -10,14 +10,29 @@ import static app.morphe.extension.instagram.utils.IgStr.str;
 
 import android.app.Dialog;
 import android.content.Context;
-import android.content.DialogInterface;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.GradientDrawable;
 import android.util.Log;
+import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewParent;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,7 +40,6 @@ import com.instagram.common.session.UserSession;
 
 import app.morphe.extension.crimera.PikoUtils;
 import app.morphe.extension.instagram.entity.ImageData;
-import app.morphe.extension.instagram.entity.InstagramDialogBox;
 import app.morphe.extension.instagram.entity.MediaData;
 import app.morphe.extension.instagram.utils.Pref;
 
@@ -133,6 +147,21 @@ public final class PostImageQuality {
     private static final Map<String, Boolean> URL_SAMPLES =
             Collections.synchronizedMap(new LinkedHashMap<String, Boolean>(URL_SAMPLE_LIMIT, 0.75f, true));
 
+    /** Unobfuscated on the pinned version, so it can be matched by name without a compile dep. */
+    private static final String MEDIA_TYPE = "com.instagram.feed.media.Media";
+
+    /** Class -> its {@code Media} field, or null when it has none. Cached to keep misses cheap. */
+    private static final Map<Class<?>, Field> MEDIA_FIELDS = new WeakHashMap<>();
+
+    /** Post id -> last chosen tier, so the sheet can mark the current selection. */
+    private static final Map<String, Integer> POST_TIERS =
+            Collections.synchronizedMap(new LinkedHashMap<String, Integer>(16, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, Integer> eldest) {
+                    return size() > MAX_ENTRIES;
+                }
+            });
+
     private static void debug(String message) {
         try {
             if (!Pref.pikoDebug()) return;
@@ -196,6 +225,132 @@ public final class PostImageQuality {
         } catch (Throwable ignored) {
         }
         return sb.toString();
+    }
+
+    /** How far up the hierarchy to look before giving up on finding the Media. */
+    private static final int MAX_ANCESTORS = 14;
+
+    /**
+     * Opens the quality sheet for whichever post owns {@code anchorView}, resolving the
+     * {@code Media} at tap time. Used by the action-bar button, which only ever sees views.
+     */
+    public static void openQualitySheet(View anchorView) {
+        try {
+            if (anchorView == null) return;
+            Object media = findMedia(anchorView);
+            if (media == null) {
+                debug("quality sheet found no Media for " + anchorView.getClass().getName());
+                PikoUtils.toast(str("piko_post_quality_no_image"));
+                return;
+            }
+            // UserSession is only consulted for user lookups; getImageVariants() never touches
+            // it, and there is no session to hand here.
+            showQualitySheet(anchorView.getContext(), media, null, 0);
+        } catch (Throwable t) {
+            PikoUtils.logger(t);
+        }
+    }
+
+    /**
+     * Finds the {@code Media} behind a view: first on the view or an ancestor, then via
+     * the RecyclerView ViewHolder that actually owns the row.
+     *
+     * @return the media object, or null if it cannot be identified
+     */
+    private static Object findMedia(View view) {
+        try {
+            View current = view;
+            for (int level = 0; level < MAX_ANCESTORS && current != null; level++) {
+                Object media = readMediaField(current);
+                if (media != null) return media;
+
+                Object tag = current.getTag();
+                if (tag != null) {
+                    media = readMediaField(tag);
+                    if (media != null) return media;
+                }
+
+                Object holder = readViewHolder(current, view);
+                if (holder != null) {
+                    media = readMediaField(holder);
+                    if (media != null) return media;
+                }
+
+                ViewParent parent = current.getParent();
+                current = parent instanceof View ? (View) parent : null;
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
+    /**
+     * Resolves the RecyclerView ViewHolder owning {@code target} by walking up to the first
+     * RecyclerView ancestor. Entirely reflective so the extension keeps no compile-time
+     * dependency on the AndroidX widget. The post viewer is a ViewPager2 and therefore
+     * RecyclerView-backed, which is what makes this reach the viewer at all.
+     *
+     * @return the ViewHolder, or null when there is no RecyclerView above the view
+     */
+    private static Object readViewHolder(View ancestor, View target) {
+        try {
+            Class<?> clazz = ancestor.getClass();
+            boolean isRecyclerView = false;
+            for (Class<?> c = clazz; c != null && !isRecyclerView; c = c.getSuperclass()) {
+                isRecyclerView = c.getName().startsWith("androidx.recyclerview.widget.RecyclerView");
+            }
+            if (!isRecyclerView) return null;
+
+            Method childPosition = clazz.getMethod("getChildAdapterPosition", View.class);
+            Object position = childPosition.invoke(ancestor, target);
+            if (!(position instanceof Integer) || (Integer) position < 0) return null;
+
+            Method findHolder = clazz.getMethod("findViewHolderForAdapterPosition", int.class);
+            return findHolder.invoke(ancestor, position);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    /** Reads a {@code Media}-typed field off {@code owner}, or null. */
+    private static Object readMediaField(Object owner) {
+        try {
+            Field field = mediaFieldFor(owner.getClass());
+            if (field == null) return null;
+            field.setAccessible(true);
+            Object value = field.get(owner);
+            return (value != null && value.getClass().getName().equals(MEDIA_TYPE)) ? value : null;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    /**
+     * The {@code Media}-typed field declared by {@code clazz} or one of its superclasses.
+     * Resolved once per class; a null result is cached too, so the common miss costs one map
+     * lookup instead of a field scan on every tap.
+     */
+    private static Field mediaFieldFor(Class<?> clazz) {
+        try {
+            synchronized (MEDIA_FIELDS) {
+                if (MEDIA_FIELDS.containsKey(clazz)) return MEDIA_FIELDS.get(clazz);
+            }
+            Field found = null;
+            for (Class<?> c = clazz; c != null && found == null; c = c.getSuperclass()) {
+                for (Field f : c.getDeclaredFields()) {
+                    if (f.getType().getName().equals(MEDIA_TYPE)) {
+                        found = f;
+                        break;
+                    }
+                }
+            }
+            synchronized (MEDIA_FIELDS) {
+                MEDIA_FIELDS.put(clazz, found);
+            }
+            return found;
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 
     /**
@@ -415,6 +570,16 @@ public final class PostImageQuality {
                 VARIANTS.put(identity, published);
             }
 
+            // Remember the choice per post as well, so the sheet can mark the current tier.
+            // A post id read failure must not lose the registration above.
+            try {
+                String postId = mediaData.getPostID();
+                if (postId != null && !postId.isEmpty() && !"0".equals(postId)) {
+                    POST_TIERS.put(postId, tier);
+                }
+            } catch (Throwable ignored) {
+            }
+
             debug("registered tier=" + tier + " widest=" + widest
                     + " variants=" + published.size() + " ids=" + identities.size());
 
@@ -424,35 +589,197 @@ public final class PostImageQuality {
         }
     }
 
+    /**
+     * Entry point kept for the overflow-menu path. It opens the same bottom sheet as the
+     * action-bar button, so both surfaces share one picker UI.
+     */
     public static void showQualityDialog(Context context, Object mediaObject, UserSession userSession, int currentMediaIndex) {
+        showQualitySheet(context, mediaObject, userSession, currentMediaIndex);
+    }
+
+    /**
+     * Bottom-sheet quality picker, built from framework views only: no Material dependency,
+     * no IGDS fragment integration, nothing that can shift under us on the next IG bump.
+     * Bottom gravity plus a slide-up on show give the sheet feel; the rows follow the app
+     * theme so dark mode stays correct.
+     */
+    public static void showQualitySheet(final Context context, final Object mediaObject, final UserSession userSession, final int currentMediaIndex) {
         try {
-            final List<Integer> tiers = new ArrayList<>();
-            tiers.add(ULTRA);
-            tiers.add(LOW);
-            tiers.add(MEDIUM);
-            tiers.add(ORIGINAL);
+            if (context == null) return;
+            final int[] tiers = {ULTRA, LOW, MEDIUM, ORIGINAL};
 
-            List<String> labels = new ArrayList<>();
-            for (int tier : tiers) labels.add(tierLabel(tier));
-            CharSequence[] items = labels.toArray(new CharSequence[0]);
+            // Mark the post's current tier, if it already has one.
+            int selected = Integer.MIN_VALUE;
+            try {
+                String postId = new MediaData(mediaObject, userSession).getPostID();
+                Integer known = postId == null ? null : POST_TIERS.get(postId);
+                if (known != null) selected = known;
+            } catch (Throwable ignored) {
+            }
+            final int currentTier = selected;
 
-            InstagramDialogBox dialog = new InstagramDialogBox(context);
-            dialog.addDialogMenuItems(items, new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface d, int which) {
-                    if (which < 0 || which >= tiers.size()) return;
-                    setForPost(mediaObject, userSession, currentMediaIndex, tiers.get(which));
-                }
-            });
-            dialog.setTitle(str("piko_post_quality_title"));
-            dialog.setNegativeButton(str("piko_close"), (d, which) -> d.dismiss());
+            final Dialog dialog = new Dialog(context);
             dialog.setCancelable(true);
             dialog.setCanceledOnTouchOutside(true);
-            Dialog dlg = dialog.getDialog();
-            dlg.show();
+
+            LinearLayout root = new LinearLayout(context);
+            root.setOrientation(LinearLayout.VERTICAL);
+            int side = dp(context, 16);
+            root.setPadding(side, dp(context, 8), side, dp(context, 16));
+            root.setBackground(sheetBackground(context));
+
+            View handle = new View(context);
+            LinearLayout.LayoutParams handleParams =
+                    new LinearLayout.LayoutParams(dp(context, 40), dp(context, 4));
+            handleParams.gravity = Gravity.CENTER_HORIZONTAL;
+            handleParams.bottomMargin = dp(context, 10);
+            handle.setLayoutParams(handleParams);
+            GradientDrawable handleBg = new GradientDrawable();
+            handleBg.setShape(GradientDrawable.RECTANGLE);
+            handleBg.setCornerRadius(dp(context, 2));
+            handleBg.setColor(0xFFBDBDBD);
+            handle.setBackground(handleBg);
+            root.addView(handle);
+
+            TextView title = new TextView(context);
+            title.setText(str("piko_post_quality_title"));
+            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+            title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
+            title.setTextColor(resolveColor(context, android.R.attr.textColorPrimary, Color.BLACK));
+            root.addView(title);
+
+            TextView hint = new TextView(context);
+            hint.setText(str("piko_post_quality_hint"));
+            hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+            hint.setTextColor(resolveColor(context, android.R.attr.textColorSecondary, Color.GRAY));
+            hint.setPadding(0, dp(context, 2), 0, dp(context, 8));
+            root.addView(hint);
+
+            final boolean[] dismissed = {false};
+            final Runnable dismissSheet = new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if (dismissed[0]) return;
+                        dismissed[0] = true;
+                        dialog.dismiss();
+                    } catch (Throwable ignored) {
+                    }
+                }
+            };
+
+            for (final int tier : tiers) {
+                root.addView(qualityRow(context, tier, tier == currentTier, new Runnable() {
+                    @Override
+                    public void run() {
+                        setForPost(mediaObject, userSession, currentMediaIndex, tier);
+                        dismissSheet.run();
+                    }
+                }));
+            }
+
+            dialog.setContentView(root);
+            Window window = dialog.getWindow();
+            if (window != null) {
+                window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                window.setGravity(Gravity.BOTTOM);
+                WindowManager.LayoutParams params = window.getAttributes();
+                params.width = WindowManager.LayoutParams.MATCH_PARENT;
+                params.height = WindowManager.LayoutParams.WRAP_CONTENT;
+                params.dimAmount = 0.5f;
+                window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+                window.setAttributes(params);
+            }
+            dialog.show();
+
+            // Slide up on show. Pure property animation: no animation resources needed.
+            root.setTranslationY(dp(context, 320));
+            root.animate().translationY(0).setDuration(220).start();
         } catch (Throwable t) {
             PikoUtils.logger(t);
         }
+    }
+
+    /** One tappable tier row: label left, blue check right when it is the current tier. */
+    private static View qualityRow(Context context, int tier, boolean selected, final Runnable onPick) {
+        LinearLayout row = new LinearLayout(context);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setMinimumHeight(dp(context, 52));
+        int ripple = resolveResId(context, android.R.attr.selectableItemBackground);
+        if (ripple != 0) row.setBackgroundResource(ripple);
+        row.setPadding(dp(context, 4), dp(context, 4), dp(context, 4), dp(context, 4));
+
+        TextView label = new TextView(context);
+        label.setText(tierLabel(tier));
+        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        label.setTextColor(resolveColor(context, android.R.attr.textColorPrimary, Color.BLACK));
+        LinearLayout.LayoutParams labelParams =
+                new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        label.setLayoutParams(labelParams);
+        row.addView(label);
+
+        TextView check = new TextView(context);
+        check.setText("\u2713");
+        check.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        check.setTextColor(0xFF0095F6);
+        check.setVisibility(selected ? View.VISIBLE : View.INVISIBLE);
+        row.addView(check);
+
+        row.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    onPick.run();
+                } catch (Throwable t) {
+                    PikoUtils.logger(t);
+                }
+            }
+        });
+        return row;
+    }
+
+    /** Top-rounded sheet background in the theme's background color, so dark mode just works. */
+    private static GradientDrawable sheetBackground(Context context) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.RECTANGLE);
+        float r = dp(context, 16);
+        bg.setCornerRadii(new float[]{r, r, r, r, 0, 0, 0, 0});
+        bg.setColor(resolveColor(context, android.R.attr.colorBackground, Color.WHITE));
+        return bg;
+    }
+
+    private static int dp(Context context, int dp) {
+        try {
+            float density = context.getResources().getDisplayMetrics().density;
+            return Math.max(1, Math.round(dp * density));
+        } catch (Throwable ignored) {
+            return dp;
+        }
+    }
+
+    private static int resolveColor(Context context, int attr, int fallback) {
+        try {
+            TypedValue out = new TypedValue();
+            if (context.getTheme().resolveAttribute(attr, out, true)) {
+                if (out.type >= TypedValue.TYPE_FIRST_COLOR_INT
+                        && out.type <= TypedValue.TYPE_LAST_COLOR_INT) {
+                    return out.data;
+                }
+                if (out.resourceId != 0) return context.getColor(out.resourceId);
+            }
+        } catch (Throwable ignored) {
+        }
+        return fallback;
+    }
+
+    private static int resolveResId(Context context, int attr) {
+        try {
+            TypedValue out = new TypedValue();
+            if (context.getTheme().resolveAttribute(attr, out, true)) return out.resourceId;
+        } catch (Throwable ignored) {
+        }
+        return 0;
     }
 
     public static String tierLabel(int tier) {
