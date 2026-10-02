@@ -12,12 +12,17 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.util.Log;
+import android.view.View;
+import android.view.ViewParent;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,6 +33,7 @@ import app.morphe.extension.instagram.entity.ImageData;
 import app.morphe.extension.instagram.entity.InstagramDialogBox;
 import app.morphe.extension.instagram.entity.MediaData;
 import app.morphe.extension.instagram.patches.discovery.ViewerMenuDiscovery;
+import app.morphe.extension.instagram.settings.SettingsStatus;
 import app.morphe.extension.instagram.utils.Pref;
 
 /**
@@ -130,6 +136,18 @@ public final class PostImageQuality {
      */
     private static final int URL_SAMPLE_LIMIT = 12;
 
+    /** Unobfuscated on the pinned version, so it can be matched by name without a compile dep. */
+    private static final String MEDIA_TYPE = "com.instagram.feed.media.Media";
+
+    /**
+     * Views that already carry our long-press listener. Weak keys because ImageViews are
+     * recycled across posts and holding one would leak the whole row.
+     */
+    private static final Map<View, Boolean> LONG_PRESS = new WeakHashMap<>();
+
+    /** Class -> its {@code Media} field, or null when it has none. Cached to keep misses cheap. */
+    private static final Map<Class<?>, Field> MEDIA_FIELDS = new WeakHashMap<>();
+
     private static final Map<String, Boolean> URL_SAMPLES =
             Collections.synchronizedMap(new LinkedHashMap<String, Boolean>(URL_SAMPLE_LIMIT, 0.75f, true));
 
@@ -170,6 +188,161 @@ public final class PostImageQuality {
                     + " token=" + (SIZE_TOKEN.matcher(path).find() ? "yes" : "NONE")
                     + ViewerMenuDiscovery.describeCallSite());
         } catch (Throwable ignored) {
+        }
+    }
+
+    /**
+ * Attaches the long-press quality dialog to a photo view.
+ *
+ * <p>Called at the entry of {@code IgProgressImageView.setUrl}, the same hook the photo hider
+ * uses, so it covers the feed, explore, profile and the post viewer.
+ *
+ * <p>The viewer is a ViewPager2, which is RecyclerView-backed, and the feed row is a RecyclerView
+ * row, so in both cases the {@code Media} the sheet needs sits on the ViewHolder rather than on
+ * the view or its tags. That holder is only reachable through the RecyclerView, so it is looked
+ * up reflectively on the long-press itself rather than at bind time: the lookup is the part that
+ * can be wrong, and deferring it means a miss costs a toast instead of a broken image bind.
+ *
+ * <p>Note this takes over long-press on the view. Instagram itself does not long-press photos, so
+ * the common case is nothing lost, but it is still a real takeover rather than an addition.
+ */
+public static void attachLongPress(final View view) {
+    try {
+        if (view == null) return;
+        if (!SettingsStatus.ultraPostImageQuality) return;
+        synchronized (LONG_PRESS) {
+            if (LONG_PRESS.containsKey(view)) return;
+            LONG_PRESS.put(view, Boolean.TRUE);
+        }
+        view.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                openQualityDialog(v);
+                return true;
+            }
+        });
+    } catch (Throwable ignored) {
+        // Never let an extra listener break image binding.
+    }
+}
+
+private static void openQualityDialog(View view) {
+        try {
+            Object media = findMedia(view);
+            if (media == null) {
+                debug("long press found no Media for " + view.getClass().getName());
+                PikoUtils.toast(str("piko_post_quality_no_image"));
+                return;
+            }
+            // UserSession is only consulted for user lookups; getImageVariants() never touches
+            // it, and there is no session to hand here.
+            showQualityDialog(view.getContext(), media, null, 0);
+        } catch (Throwable t) {
+            PikoUtils.logger(t);
+        }
+    }
+
+    /** How far up the hierarchy to look before giving up on finding the Media. */
+    private static final int MAX_ANCESTORS = 14;
+
+    /**
+     * Finds the {@code Media} behind a photo view: first on the view or an ancestor, then via
+     * the RecyclerView ViewHolder that actually owns the row.
+     *
+     * @return the media object, or null if it cannot be identified
+     */
+    private static Object findMedia(View view) {
+        try {
+            View current = view;
+            for (int level = 0; level < MAX_ANCESTORS && current != null; level++) {
+                Object media = readMediaField(current);
+                if (media != null) return media;
+
+                Object tag = current.getTag();
+                if (tag != null) {
+                    media = readMediaField(tag);
+                    if (media != null) return media;
+                }
+
+                Object holder = readViewHolder(current, view);
+                if (holder != null) {
+                    media = readMediaField(holder);
+                    if (media != null) return media;
+                }
+
+                ViewParent parent = current.getParent();
+                current = parent instanceof View ? (View) parent : null;
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
+    /**
+     * Resolves the RecyclerView ViewHolder owning {@code target} by walking up to the first
+     * RecyclerView ancestor. Entirely reflective so the extension keeps no compile-time
+     * dependency on the AndroidX widget.
+     *
+     * @return the ViewHolder, or null when there is no RecyclerView above the view
+     */
+    private static Object readViewHolder(View ancestor, View target) {
+        try {
+            Class<?> clazz = ancestor.getClass();
+            boolean isRecyclerView = false;
+            for (Class<?> c = clazz; c != null && !isRecyclerView; c = c.getSuperclass()) {
+                isRecyclerView = c.getName().startsWith("androidx.recyclerview.widget.RecyclerView");
+            }
+            if (!isRecyclerView) return null;
+
+            Method childPosition = clazz.getMethod("getChildAdapterPosition", View.class);
+            Object position = childPosition.invoke(ancestor, target);
+            if (!(position instanceof Integer) || (Integer) position < 0) return null;
+
+            Method findHolder = clazz.getMethod("findViewHolderForAdapterPosition", int.class);
+            return findHolder.invoke(ancestor, position);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    /** Reads a {@code Media}-typed field off {@code owner}, or null. */
+    private static Object readMediaField(Object owner) {
+        try {
+            Field field = mediaFieldFor(owner.getClass());
+            if (field == null) return null;
+            field.setAccessible(true);
+            Object value = field.get(owner);
+            return (value != null && value.getClass().getName().equals(MEDIA_TYPE)) ? value : null;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    /**
+     * The {@code Media}-typed field declared by {@code clazz} or one of its superclasses.
+     * Resolved once per class; a null result is cached too, so the common miss costs one map
+     * lookup instead of a field scan on every long-press.
+     */
+    private static Field mediaFieldFor(Class<?> clazz) {
+        try {
+            synchronized (MEDIA_FIELDS) {
+                if (MEDIA_FIELDS.containsKey(clazz)) return MEDIA_FIELDS.get(clazz);
+            }
+            Field found = null;
+            for (Class<?> c = clazz; c != null && found == null; c = c.getSuperclass()) {
+                for (Field f : c.getDeclaredFields()) {
+                    if (f.getType().getName().equals(MEDIA_TYPE)) {
+                        found = f;
+                        break;
+                    }
+                }
+            }
+            synchronized (MEDIA_FIELDS) {
+                MEDIA_FIELDS.put(clazz, found);
+            }
+            return found;
+        } catch (Throwable ignored) {
+            return null;
         }
     }
 

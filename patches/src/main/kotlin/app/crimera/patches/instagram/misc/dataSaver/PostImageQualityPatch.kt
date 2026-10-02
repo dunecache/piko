@@ -52,7 +52,7 @@ internal object ImageUrlGetUrlFingerprint : Fingerprint(
 val postImageQualityPatch =
     bytecodePatch(
         name = "Per-post image quality",
-        description = "Adds an Image quality entry to a post's overflow menu, letting the resolution of that post's photos be picked from Ultra, Low, Medium or original independently of the global low-resolution setting. Takes effect the next time the photo is loaded.",
+        description = "Adds an Image quality entry to a post's overflow menu, letting the resolution of that post's photos be picked from Ultra, Low, Medium or original independently of the global low-resolution setting. Long-press a photo to reach the same dialog, which is how it is reached inside the post viewer. Takes effect the next time the photo is loaded.",
         default = false,
     ) {
         compatibleWith(COMPATIBILITY_INSTAGRAM)
@@ -83,6 +83,19 @@ val postImageQualityPatch =
                         """.trimIndent(),
                     )
                 }
+            }
+            // Second entry point, and the one that actually reaches the post viewer. The feed's
+            // overflow menu is the only menu Piko can inject into, and in 439 the viewer opens
+            // its sheet through a different helper, so the option never appears there. Rather
+            // than patching that helper blind, the viewer photo is reached through the same
+            // setUrl hook the photo hider uses and the dialog is offered on long-press.
+            FeedPhotoSetUrlFingerprint.method.apply {
+                addInstructions(
+                    0,
+                    """
+                    invoke-static {p0}, $POST_IMAGE_QUALITY_DESCRIPTOR->attachLongPress(Landroid/view/View;)V
+                    """.trimIndent(),
+                )
             }
             enableSettings("ultraPostImageQuality")
             addOverflowMenuButtonAttributes("PIKO_IMAGE_QUALITY", "imageQualityOverflowButton")

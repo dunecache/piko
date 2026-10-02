@@ -216,7 +216,7 @@ To patch with Twitter/X version 11.88 to 12.4, you must include patches from ano
 | [More options on post](#more-options-on-post) | Adds an overflow menu button to get more options on post/reels, like copy description, copy username etc |  |
 | [More options on profile](#more-options-on-profile) | Adds a new button to handle user related data like copy handle, download profile picture etc |  |
 | [Open links externally](#open-links-externally) | Changes links to always open in your external browser, instead of the in-app browser. |  |
-| [Per-post image quality](#per-post-image-quality) | Adds an Image quality entry to a post's overflow menu, letting the resolution of that post's photos be picked from Ultra, Low, Medium or original independently of the global low-resolution setting. Takes effect the next time the photo is loaded. |  |
+| [Per-post image quality](#per-post-image-quality) | Adds an Image quality entry to a post's overflow menu, letting the resolution of that post's photos be picked from Ultra, Low, Medium or original independently of the global low-resolution setting. Long-press a photo to reach the same dialog, which is how it is reached inside the post viewer. Takes effect the next time the photo is loaded. |  |
 | [Post viewer menu discovery](#post-viewer-menu-discovery) | Diagnostic only. With the debug setting on, logs each activity class and its menu or option typed fields, to identify the post viewer's overflow menu. Makes no behavioural change. |  |
 | [Recommended flags](#recommended-flags) | Developer flags suggested by the community |  |
 | [Remove build expired popup](#remove-build-expired-popup) | Removes the popup that appears after a while, when the app version ages. |  |
