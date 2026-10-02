@@ -1,3 +1,9 @@
+## [3.10.0-dev.7](https://github.com/dunecache/piko/compare/v3.10.0-dev.6...v3.10.0-dev.7) (2026-10-02)
+
+### 🐛 Bug Fixes
+
+* **Instagram:** guard PIKO_DEBUG behind its own patch flag ([4a1695e](https://github.com/dunecache/piko/commit/4a1695e7e4eb7aca1bfe7962398043cbdf339e03))
+
 ## [3.10.0-dev.6](https://github.com/dunecache/piko/compare/v3.10.0-dev.5...v3.10.0-dev.6) (2026-10-02)
 
 ### 🔧 Improvements
