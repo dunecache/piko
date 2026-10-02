@@ -16,10 +16,8 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -92,9 +90,13 @@ public final class PostImageQuality {
     /**
      * Keys already reported, so a RecyclerView rebinding the same photo does not repeat the
      * same line. Bounded, access-ordered, for the same reason the override maps are.
+     *
+     * <p>Used as an ordered set via {@link Map#put}. Not a {@code LinkedHashSet}: the
+     * access-order constructor of that class is not available on the Android API level this
+     * extension compiles against, and {@code LinkedHashMap}'s is.
      */
-    private static final Set<String> REPORTED =
-            Collections.synchronizedSet(new LinkedHashSet<String>(64, 0.75f, true) {
+    private static final Map<String, Boolean> REPORTED =
+            Collections.synchronizedMap(new LinkedHashMap<String, Boolean>(64, 0.75f, true) {
                 @Override
                 protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
                     return size() > 64;
@@ -108,8 +110,8 @@ public final class PostImageQuality {
      */
     private static final int URL_SAMPLE_LIMIT = 12;
 
-    private static final Set<String> URL_SAMPLES =
-            Collections.synchronizedSet(new LinkedHashSet<String>(URL_SAMPLE_LIMIT, 0.75f, true));
+    private static final Map<String, Boolean> URL_SAMPLES =
+            Collections.synchronizedMap(new LinkedHashMap<String, Boolean>(URL_SAMPLE_LIMIT, 0.75f, true));
 
     private static void debug(String message) {
         try {
@@ -124,7 +126,7 @@ public final class PostImageQuality {
     private static void debugOnce(String dedupeKey, String message) {
         try {
             if (!Pref.pikoDebug()) return;
-            if (REPORTED.add(dedupeKey)) debug(message);
+            if (REPORTED.put(dedupeKey, Boolean.TRUE) == null) debug(message);
         } catch (Throwable ignored) {
         }
     }
@@ -139,7 +141,7 @@ public final class PostImageQuality {
         try {
             if (!Pref.pikoDebug()) return;
             if (URL_SAMPLES.size() >= URL_SAMPLE_LIMIT) return;
-            if (!URL_SAMPLES.add(url)) return;
+            if (URL_SAMPLES.put(url, Boolean.TRUE) != null) return;
 
             String path = url;
             int query = path.indexOf('?');
