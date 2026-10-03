@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-10-03T00:15:23",
-  "description": "## [3.10.0-dev.3](https://github.com/dunecache/piko/compare/v3.10.0-dev.2...v3.10.0-dev.3) (2026-10-03)\n\n### 🐛 Bug Fixes\n\n* release patch versions for improve commits ([05abf5d](https://github.com/dunecache/piko/commit/05abf5d8376ff7312281c4efd25b6fe8c1b802e1))\n\n### 🔧 Improvements\n\n* **Instagram:** resolve carousel child for per-post quality ([3660ace](https://github.com/dunecache/piko/commit/3660ace0819022bd9757d9aa822b533c5d536401))",
-  "download_url": "https://github.com/dunecache/piko/releases/download/v3.10.0-dev.3/patches-3.10.0-dev.3.mpp",
-  "signature_download_url": "https://github.com/dunecache/piko/releases/download/v3.10.0-dev.3/patches-3.10.0-dev.3.mpp.asc",
-  "version": "3.10.0-dev.3"
+  "created_at": "2026-10-03T00:54:45",
+  "description": "## [3.10.0-dev.4](https://github.com/dunecache/piko/compare/v3.10.0-dev.3...v3.10.0-dev.4) (2026-10-03)\n\n### 🐛 Bug Fixes\n\n* **Instagram:** resolve dialog and media entities for post menus ([95b838d](https://github.com/dunecache/piko/commit/95b838defe3672bb85b6091eeb2f399de5890150))",
+  "download_url": "https://github.com/dunecache/piko/releases/download/v3.10.0-dev.4/patches-3.10.0-dev.4.mpp",
+  "signature_download_url": "https://github.com/dunecache/piko/releases/download/v3.10.0-dev.4/patches-3.10.0-dev.4.mpp.asc",
+  "version": "3.10.0-dev.4"
 }

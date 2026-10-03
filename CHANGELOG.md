@@ -1,3 +1,9 @@
+## [3.10.0-dev.4](https://github.com/dunecache/piko/compare/v3.10.0-dev.3...v3.10.0-dev.4) (2026-10-03)
+
+### 🐛 Bug Fixes
+
+* **Instagram:** resolve dialog and media entities for post menus ([95b838d](https://github.com/dunecache/piko/commit/95b838defe3672bb85b6091eeb2f399de5890150))
+
 ## [3.10.0-dev.3](https://github.com/dunecache/piko/compare/v3.10.0-dev.2...v3.10.0-dev.3) (2026-10-03)
 
 ### 🐛 Bug Fixes
