@@ -233,6 +233,9 @@ public final class PostImageQuality {
     /**
      * Opens the quality sheet for whichever post owns {@code anchorView}, resolving the
      * {@code Media} at tap time. Used by the action-bar button, which only ever sees views.
+     *
+     * <p>Carousels resolve to the currently visible child: the media pager is read at tap
+     * time and the child at that index is what gets variants registered and marked.
      */
     public static void openQualitySheet(View anchorView) {
         try {
@@ -245,14 +248,82 @@ public final class PostImageQuality {
             }
             // UserSession is only consulted for user lookups; getImageVariants() never touches
             // it, and there is no session to hand here.
-            showQualitySheet(anchorView.getContext(), media, null, 0);
+            Object target = media;
+            int targetIndex = 0;
+            try {
+                int page = readCurrentPageIndex(anchorView);
+                MediaData child = new MediaData(media, null).getMediaAt(page);
+                if (child != null && child.getObject() != null) {
+                    target = child.getObject();
+                    targetIndex = Math.max(0, page);
+                }
+            } catch (Throwable ignored) {
+            }
+            showQualitySheet(anchorView.getContext(), target, null, targetIndex);
         } catch (Throwable t) {
             PikoUtils.logger(t);
         }
     }
 
     /**
-     * Finds the {@code Media} behind a view: first on the view or an ancestor, then via
+     * The media pager's currently visible page, or 0 when there is none in reach.
+     *
+     * <p>Walks up a few levels (row/page root, never the activity decor, so the outer tab
+     * pager is out of reach) and searches each level's subtree for the nearest photo pager.
+     * Single photos have no pager and fall through to 0; feed carousels resolve to the
+     * visible child, which is exactly the photo the tier should apply to.
+     */
+    private static int readCurrentPageIndex(View anchor) {
+        try {
+            View current = anchor;
+            for (int level = 0; level < 8 && current != null; level++) {
+                Object pager = findPagerInSubtree(current, 0);
+                if (pager != null) {
+                    int index = getPagerItem(pager);
+                    if (index >= 0) return index;
+                }
+                ViewParent parent = current.getParent();
+                current = parent instanceof View ? (View) parent : null;
+            }
+        } catch (Throwable ignored) {
+        }
+        return 0;
+    }
+
+    /** First ViewPager2 (or legacy ViewPager) in the subtree, depth-bounded. */
+    private static Object findPagerInSubtree(View root, int depth) {
+        try {
+            if (root == null || depth > 5) return null;
+            String name = root.getClass().getName();
+            if (name.startsWith("androidx.viewpager2.widget.ViewPager2")
+                    || name.startsWith("androidx.viewpager.widget.ViewPager")) {
+                return root;
+            }
+            if (root instanceof ViewGroup) {
+                ViewGroup group = (ViewGroup) root;
+                for (int i = 0; i < group.getChildCount(); i++) {
+                    Object found = findPagerInSubtree(group.getChildAt(i), depth + 1);
+                    if (found != null) return found;
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
+    /** Reflective {@code getCurrentItem()}, or -1. */
+    private static int getPagerItem(Object pager) {
+        try {
+            Method currentItem = pager.getClass().getMethod("getCurrentItem");
+            Object index = currentItem.invoke(pager);
+            if (index instanceof Integer) return (Integer) index;
+        } catch (Throwable ignored) {
+        }
+        return -1;
+    }
+
+    /**
+     * Finds the {@code Media} behind a photo view: first on the view or an ancestor, then via
      * the RecyclerView ViewHolder that actually owns the row.
      *
      * @return the media object, or null if it cannot be identified
