@@ -1,3 +1,13 @@
+## [3.10.0-dev.3](https://github.com/dunecache/piko/compare/v3.10.0-dev.2...v3.10.0-dev.3) (2026-10-03)
+
+### 🐛 Bug Fixes
+
+* release patch versions for improve commits ([05abf5d](https://github.com/dunecache/piko/commit/05abf5d8376ff7312281c4efd25b6fe8c1b802e1))
+
+### 🔧 Improvements
+
+* **Instagram:** resolve carousel child for per-post quality ([3660ace](https://github.com/dunecache/piko/commit/3660ace0819022bd9757d9aa822b533c5d536401))
+
 ## [3.10.0-dev.2](https://github.com/dunecache/piko/compare/v3.10.0-dev.1...v3.10.0-dev.2) (2026-10-02)
 
 ### ✨ New Features

@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-10-02T23:59:12",
-  "description": "## [3.10.0-dev.2](https://github.com/dunecache/piko/compare/v3.10.0-dev.1...v3.10.0-dev.2) (2026-10-02)\n\n### ✨ New Features\n\n* **Instagram:** action-bar quality button with bottom-sheet picker ([72759fe](https://github.com/dunecache/piko/commit/72759fe3f0e9c77fbee91eba6e49150d1d7aca2f))",
-  "download_url": "https://github.com/dunecache/piko/releases/download/v3.10.0-dev.2/patches-3.10.0-dev.2.mpp",
-  "signature_download_url": "https://github.com/dunecache/piko/releases/download/v3.10.0-dev.2/patches-3.10.0-dev.2.mpp.asc",
-  "version": "3.10.0-dev.2"
+  "created_at": "2026-10-03T00:15:23",
+  "description": "## [3.10.0-dev.3](https://github.com/dunecache/piko/compare/v3.10.0-dev.2...v3.10.0-dev.3) (2026-10-03)\n\n### 🐛 Bug Fixes\n\n* release patch versions for improve commits ([05abf5d](https://github.com/dunecache/piko/commit/05abf5d8376ff7312281c4efd25b6fe8c1b802e1))\n\n### 🔧 Improvements\n\n* **Instagram:** resolve carousel child for per-post quality ([3660ace](https://github.com/dunecache/piko/commit/3660ace0819022bd9757d9aa822b533c5d536401))",
+  "download_url": "https://github.com/dunecache/piko/releases/download/v3.10.0-dev.3/patches-3.10.0-dev.3.mpp",
+  "signature_download_url": "https://github.com/dunecache/piko/releases/download/v3.10.0-dev.3/patches-3.10.0-dev.3.mpp.asc",
+  "version": "3.10.0-dev.3"
 }
