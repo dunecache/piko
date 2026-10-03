@@ -1,3 +1,9 @@
+## [3.10.0-dev.2](https://github.com/dunecache/piko/compare/v3.10.0-dev.1...v3.10.0-dev.2) (2026-10-02)
+
+### ✨ New Features
+
+* **Instagram:** action-bar quality button with bottom-sheet picker ([72759fe](https://github.com/dunecache/piko/commit/72759fe3f0e9c77fbee91eba6e49150d1d7aca2f))
+
 ## [3.10.0-dev.1](https://github.com/dunecache/piko/compare/v3.9.0...v3.10.0-dev.1) (2026-10-02)
 
 ### ✨ New Features

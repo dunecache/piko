@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-10-02T23:32:33",
-  "description": "## [3.10.0-dev.1](https://github.com/dunecache/piko/compare/v3.9.0...v3.10.0-dev.1) (2026-10-02)\n\n### ✨ New Features\n\n* **Instagram:** add per-post image quality with hardened menu injection ([638d4a9](https://github.com/dunecache/piko/commit/638d4a9da55a345071301e8cdfe0059078d3c67f))",
-  "download_url": "https://github.com/dunecache/piko/releases/download/v3.10.0-dev.1/patches-3.10.0-dev.1.mpp",
-  "signature_download_url": "https://github.com/dunecache/piko/releases/download/v3.10.0-dev.1/patches-3.10.0-dev.1.mpp.asc",
-  "version": "3.10.0-dev.1"
+  "created_at": "2026-10-02T23:59:12",
+  "description": "## [3.10.0-dev.2](https://github.com/dunecache/piko/compare/v3.10.0-dev.1...v3.10.0-dev.2) (2026-10-02)\n\n### ✨ New Features\n\n* **Instagram:** action-bar quality button with bottom-sheet picker ([72759fe](https://github.com/dunecache/piko/commit/72759fe3f0e9c77fbee91eba6e49150d1d7aca2f))",
+  "download_url": "https://github.com/dunecache/piko/releases/download/v3.10.0-dev.2/patches-3.10.0-dev.2.mpp",
+  "signature_download_url": "https://github.com/dunecache/piko/releases/download/v3.10.0-dev.2/patches-3.10.0-dev.2.mpp.asc",
+  "version": "3.10.0-dev.2"
 }
