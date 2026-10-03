@@ -85,6 +85,17 @@ public class ActionBarPatch {
                 return;
             }
 
+            // Unconditional: distinguishes "hook never fires" from "fired but skipped".
+            try {
+                if (Pref.pikoDebug()) {
+                    Log.d("piko", "[menu] action-bar bind "
+                            + viewGroup.getClass().getName()
+                            + " children=" + viewGroup.getChildCount()
+                            + " qualityFlag=" + SettingsStatus.ultraPostImageQuality);
+                }
+            } catch (Throwable ignored) {
+            }
+
             Set<String> pref = Pref.mainFeedActionBarButtons();
 
             if(pref.contains(Constants.AB_GHOST_MODE_ICON)) {

@@ -7,6 +7,8 @@
 package app.crimera.patches.instagram.misc.moreOptionsOnPost
 
 import app.crimera.patches.instagram.entity.decoder.decoderEntity
+import app.crimera.patches.instagram.entity.dialogbox.instagramDialogBoxEntity
+import app.crimera.patches.instagram.entity.mediadata.mediaDataEntity
 import app.crimera.patches.instagram.misc.overflowMenuButton.posts.addOverflowMenuButtonAttributes
 import app.crimera.patches.instagram.misc.overflowMenuButton.posts.debugOverflowButton.debugOverflowMenuButtonPatch
 import app.crimera.patches.instagram.misc.overflowMenuButton.posts.hookOverflowMenuButton
@@ -24,7 +26,10 @@ val moreOptionsOnPostPatch =
         default = true,
     ) {
         compatibleWith(COMPATIBILITY_INSTAGRAM)
-        dependsOn(settingsPatch, decoderEntity, hookOverflowMenuButton, debugOverflowMenuButtonPatch, hookReelOverflowMenuButton)
+        // The dialog and media entities resolve the class/field/method-name placeholders
+        // InstagramDialogBox and MediaData read through. Without them the dialog dies with
+        // ClassNotFoundException: className the moment it opens.
+        dependsOn(settingsPatch, decoderEntity, instagramDialogBoxEntity, mediaDataEntity, hookOverflowMenuButton, debugOverflowMenuButtonPatch, hookReelOverflowMenuButton)
         execute {
 
             addOverflowMenuButtonAttributes("PIKO_MORE_POST_OPTION", "morePostOptionOverflowButton")

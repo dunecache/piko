@@ -6,6 +6,7 @@
 
 package app.crimera.patches.instagram.misc.dataSaver
 
+import app.crimera.patches.instagram.entity.mediadata.mediaDataEntity
 import app.crimera.patches.instagram.misc.overflowMenuButton.posts.addOverflowMenuButtonAttributes
 import app.crimera.patches.instagram.misc.overflowMenuButton.posts.hookOverflowMenuButton
 import app.crimera.patches.instagram.misc.settings.settingsPatch
@@ -55,7 +56,9 @@ val postImageQualityPatch =
         // be a dependency rather than a separate patch: FeedButton references that field
         // directly, so a build with this patch enabled but the button patch disabled would
         // throw NoSuchFieldError the moment a post overflow menu was opened.
-        dependsOn(settingsPatch, hookOverflowMenuButton)
+        // mediaDataEntity resolves the field/method-name placeholders MediaData reads
+        // image variants through; without it every setForPost degrades to "no photos".
+        dependsOn(settingsPatch, hookOverflowMenuButton, mediaDataEntity)
         execute {
             ImageUrlGetUrlFingerprint.method.apply {
                 // Every return is rewritten, not just the first: getUrl short-circuits to null
