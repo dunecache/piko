@@ -6,6 +6,7 @@
 
 package app.crimera.patches.instagram.misc.dataSaver
 
+import app.crimera.patches.instagram.entity.dialogbox.instagramDialogBoxEntity
 import app.crimera.patches.instagram.entity.mediadata.mediaDataEntity
 import app.crimera.patches.instagram.misc.overflowMenuButton.posts.addOverflowMenuButtonAttributes
 import app.crimera.patches.instagram.misc.overflowMenuButton.posts.hookOverflowMenuButton
@@ -58,7 +59,9 @@ val postImageQualityPatch =
         // throw NoSuchFieldError the moment a post overflow menu was opened.
         // mediaDataEntity resolves the field/method-name placeholders MediaData reads
         // image variants through; without it every setForPost degrades to "no photos".
-        dependsOn(settingsPatch, hookOverflowMenuButton, mediaDataEntity)
+        // instagramDialogBoxEntity resolves the IGDS dialog placeholder the quality picker
+        // is built on; without it the picker constructor throws and the sheet never shows.
+        dependsOn(settingsPatch, hookOverflowMenuButton, mediaDataEntity, instagramDialogBoxEntity)
         execute {
             ImageUrlGetUrlFingerprint.method.apply {
                 // Every return is rewritten, not just the first: getUrl short-circuits to null

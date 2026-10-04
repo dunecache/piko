@@ -106,7 +106,7 @@ public class ActionBarPatch {
                 UI.pikoSettingsGear(viewGroup);
             }
 
-            if (SettingsStatus.ultraPostImageQuality && QUALITY_BUTTON_BARS.add(viewGroup)) {
+            if (SettingsStatus.ultraPostImageQuality && !QUALITY_BUTTON_BARS.contains(viewGroup)) {
                 try {
                     if (Pref.pikoDebug()) {
                         Log.d("piko", "[menu] quality action-bar button on "
@@ -115,13 +115,47 @@ public class ActionBarPatch {
                 } catch (Throwable ignored) {
                 }
                 final ViewGroup bar = viewGroup;
-                UI.addImageViewToViewGroup(viewGroup, UI.DRAWABLE_COLLECTIONS_ICON,
+                android.widget.ImageView added = UI.addImageViewToViewGroup(viewGroup, UI.DRAWABLE_COLLECTIONS_ICON,
                         new Runnable() {
                             @Override
                             public void run() {
                                 PostImageQuality.openQualitySheet(bar);
                             }
                         });
+                // Only dedup on success: a failed insert (null) must be retried on the next
+                // bind, otherwise the bar is marked yet carries no button forever. A button
+                // with no drawable is equally invisible, so fall back to a known-good icon.
+                if (added != null) {
+                    boolean hasDrawable = false;
+                    try {
+                        hasDrawable = added.getDrawable() != null;
+                    } catch (Throwable ignored) {
+                    }
+                    if (!hasDrawable) {
+                        try {
+                            UI.setThemedIcon(added, UI.DRAWABLE_DOWNLOAD_ICON);
+                            try {
+                                hasDrawable = added.getDrawable() != null;
+                            } catch (Throwable ignored) {
+                            }
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                    if (hasDrawable) {
+                        QUALITY_BUTTON_BARS.add(viewGroup);
+                    } else {
+                        try {
+                            viewGroup.removeView(added);
+                        } catch (Throwable ignored) {
+                        }
+                        try {
+                            if (Pref.pikoDebug()) {
+                                Log.d("piko", "[menu] quality action-bar button has no drawable, will retry");
+                            }
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                }
             }
 
         } catch (Exception e) {

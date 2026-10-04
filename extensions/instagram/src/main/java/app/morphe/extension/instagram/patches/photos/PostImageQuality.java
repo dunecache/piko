@@ -10,6 +10,7 @@ import static app.morphe.extension.instagram.utils.IgStr.str;
 
 import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
@@ -40,6 +41,7 @@ import com.instagram.common.session.UserSession;
 
 import app.morphe.extension.crimera.PikoUtils;
 import app.morphe.extension.instagram.entity.ImageData;
+import app.morphe.extension.instagram.entity.InstagramDialogBox;
 import app.morphe.extension.instagram.entity.MediaData;
 import app.morphe.extension.instagram.utils.Pref;
 
@@ -246,20 +248,16 @@ public final class PostImageQuality {
                 PikoUtils.toast(str("piko_post_quality_no_image"));
                 return;
             }
-            // UserSession is only consulted for user lookups; getImageVariants() never touches
-            // it, and there is no session to hand here.
-            Object target = media;
-            int targetIndex = 0;
+            // Pass the parent Media plus the visible page and let showQualitySheet do the
+            // single canonical getMediaAt() resolve. Resolving to the child here as well would
+            // key the tier by the child's pk on this surface but by the parent's pk on the
+            // overflow-menu surface, so the two entries would never agree on the current tier.
+            int page = 0;
             try {
-                int page = readCurrentPageIndex(anchorView);
-                MediaData child = new MediaData(media, null).getMediaAt(page);
-                if (child != null && child.getObject() != null) {
-                    target = child.getObject();
-                    targetIndex = Math.max(0, page);
-                }
+                page = Math.max(0, readCurrentPageIndex(anchorView));
             } catch (Throwable ignored) {
             }
-            showQualitySheet(anchorView.getContext(), target, null, targetIndex);
+            showQualitySheet(anchorView.getContext(), media, null, page);
         } catch (Throwable t) {
             PikoUtils.logger(t);
         }
@@ -596,12 +594,88 @@ public final class PostImageQuality {
      * single identity anyway; when it does not, each candidate has its own filename and its
      * own identity, and registering only the first would leave every other candidate -- which
      * includes the one a global clamp makes Instagram select -- unmatched.
+     */
+    /** Carousel-safe resolve: the child at {@code index}, or the media itself. Never null unless empty. */
+    private static MediaData resolveTargetMedia(Object mediaObject, UserSession userSession, int index) {
+        try {
+            if (mediaObject == null) return null;
+            MediaData parent = new MediaData(mediaObject, userSession);
+            try {
+                MediaData child = parent.getMediaAt(Math.max(0, index));
+                if (child != null && child.getObject() != null) return child;
+            } catch (Throwable ignored) {
+            }
+            return parent;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    /**
+     * Tier-marking key: parent post id plus carousel index. Falls back to the resolved child's
+     * own post id when the parent id is unreadable, so a marking is still distinct per child.
+     */
+    private static String tierKeyFor(Object mediaObject, UserSession userSession, int index) {
+        try {
+            int safeIndex = Math.max(0, index);
+            String parentId = null;
+            try {
+                parentId = new MediaData(mediaObject, userSession).getPostID();
+            } catch (Throwable ignored) {
+            }
+            if (parentId != null && !parentId.isEmpty() && !"0".equals(parentId)) {
+                return parentId + "#" + safeIndex;
+            }
+            try {
+                MediaData child = resolveTargetMedia(mediaObject, userSession, safeIndex);
+                if (child != null) {
+                    String childId = child.getPostID();
+                    if (childId != null && !childId.isEmpty() && !"0".equals(childId)) {
+                        return childId + "#" + safeIndex;
+                    }
+                }
+            } catch (Throwable ignored) {
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
+    /** Previously stored tier for this post+child, checking the legacy plain-postId key too. */
+    private static Integer readTierFor(Object mediaObject, UserSession userSession, int index) {
+        try {
+            String key = tierKeyFor(mediaObject, userSession, index);
+            if (key != null) {
+                Integer known = POST_TIERS.get(key);
+                if (known != null) return known;
+                // Entries written before per-child keys existed live under the bare post id.
+                int hash = key.indexOf('#');
+                if (hash > 0) {
+                    Integer legacy = POST_TIERS.get(key.substring(0, hash));
+                    if (legacy != null) return legacy;
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
+    /**
+     * Records the tier for the carousel child at {@code currentMediaIndex}.
      *
      * @param currentMediaIndex carousel position; ignored for single-image posts
      */
     public static void setForPost(Object mediaObject, UserSession userSession, int currentMediaIndex, int tier) {
         try {
-            MediaData mediaData = new MediaData(mediaObject, userSession);
+            // Carousels share one Media with N children: resolve the visible child first, the
+            // same way downloads do. Registering the parent's variants instead leaves every
+            // multi-photo post on "no photos" (or pins the wrong photo's URLs).
+            MediaData resolved = resolveTargetMedia(mediaObject, userSession, currentMediaIndex);
+            if (resolved == null) {
+                PikoUtils.toast(str("piko_post_quality_no_image"));
+                return;
+            }
+            MediaData mediaData = resolved;
             // getImageVariants() is a raw List, hence the cast per element.
             List<?> variants = mediaData.getImageVariants();
             if (variants == null || variants.isEmpty()) {
@@ -641,12 +715,14 @@ public final class PostImageQuality {
                 VARIANTS.put(identity, published);
             }
 
-            // Remember the choice per post as well, so the sheet can mark the current tier.
-            // A post id read failure must not lose the registration above.
+            // Remember the choice per post+child as well, so the sheet can mark the current
+            // tier. Keyed by parent post id plus carousel index: carousel children are distinct
+            // photos that deserve distinct tiers, and the overflow and action-bar surfaces must
+            // agree on the key. A post id read failure must not lose the registration above.
             try {
-                String postId = mediaData.getPostID();
-                if (postId != null && !postId.isEmpty() && !"0".equals(postId)) {
-                    POST_TIERS.put(postId, tier);
+                String key = tierKeyFor(mediaObject, userSession, currentMediaIndex);
+                if (key != null) {
+                    POST_TIERS.put(key, tier);
                 }
             } catch (Throwable ignored) {
             }
@@ -669,25 +745,69 @@ public final class PostImageQuality {
     }
 
     /**
-     * Bottom-sheet quality picker, built from framework views only: no Material dependency,
-     * no IGDS fragment integration, nothing that can shift under us on the next IG bump.
-     * Bottom gravity plus a slide-up on show give the sheet feel; the rows follow the app
-     * theme so dark mode stays correct.
+     * Quality picker, shown through the same IGDS dialog the download variants picker uses.
+     * The previous framework-Dialog sheet needed an Activity window token and silently never
+     * appeared when the anchor context was a wrapper; IGDS handles the contexts both entry
+     * points hand over (feed FragmentActivity, action-bar view context).
      */
     public static void showQualitySheet(final Context context, final Object mediaObject, final UserSession userSession, final int currentMediaIndex) {
         try {
-            if (context == null) return;
+            if (context == null || mediaObject == null) return;
             final int[] tiers = {ULTRA, LOW, MEDIUM, ORIGINAL};
 
-            // Mark the post's current tier, if it already has one.
-            int selected = Integer.MIN_VALUE;
-            try {
-                String postId = new MediaData(mediaObject, userSession).getPostID();
-                Integer known = postId == null ? null : POST_TIERS.get(postId);
-                if (known != null) selected = known;
-            } catch (Throwable ignored) {
+            // Mark this post+child's current tier, if it already has one.
+            Integer known = readTierFor(mediaObject, userSession, currentMediaIndex);
+            final int currentTier = known == null ? Integer.MIN_VALUE : known;
+
+            final CharSequence[] items = new CharSequence[tiers.length];
+            for (int i = 0; i < tiers.length; i++) {
+                String label = tierLabel(tiers[i]);
+                if (tiers[i] == currentTier) label = "\u2713 " + label;
+                items[i] = label;
             }
-            final int currentTier = selected;
+
+            InstagramDialogBox dialog;
+            try {
+                dialog = new InstagramDialogBox(context);
+            } catch (Throwable t) {
+                PikoUtils.logger(t);
+                // IGDS entity placeholders unresolved (patch dependency missing): fall back to
+                // the framework sheet rather than showing nothing.
+                showQualitySheetFallback(context, mediaObject, userSession, currentMediaIndex, currentTier);
+                return;
+            }
+            try {
+                dialog.addDialogMenuItems(items, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int which) {
+                        try {
+                            if (which < 0 || which >= tiers.length) return;
+                            setForPost(mediaObject, userSession, currentMediaIndex, tiers[which]);
+                        } catch (Throwable t) {
+                            PikoUtils.logger(t);
+                        }
+                    }
+                });
+                dialog.setTitle(str("piko_post_quality_title"));
+                dialog.setCancelable(true);
+                dialog.setCanceledOnTouchOutside(true);
+                Dialog dlg = dialog.getDialog();
+                if (dlg == null) throw new IllegalStateException("IGDS dialog is null");
+                dlg.show();
+            } catch (Throwable t) {
+                PikoUtils.logger(t);
+                showQualitySheetFallback(context, mediaObject, userSession, currentMediaIndex, currentTier);
+            }
+        } catch (Throwable t) {
+            PikoUtils.logger(t);
+        }
+    }
+
+    /** Framework-Dialog fallback when the IGDS dialog cannot be built. */
+    private static void showQualitySheetFallback(final Context context, final Object mediaObject, final UserSession userSession, final int currentMediaIndex, final int currentTier) {
+        try {
+            if (context == null) return;
+            final int[] tiers = {ULTRA, LOW, MEDIUM, ORIGINAL};
 
             final Dialog dialog = new Dialog(context);
             dialog.setCancelable(true);
