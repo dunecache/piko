@@ -31,7 +31,7 @@ internal object GetEnumButtonClassExtensionFingerprint : Fingerprint(
 
 internal object AddFeedButtonExtensionFingerprint : Fingerprint(
     definingClass = FEED_OVERFLOW_MENU_BUTTON_CLASS,
-    name = "addButton",
+    name = "adderMethodHint",
 )
 
 internal object FeedReplaceAudioDialogHelperFingerprint : Fingerprint(

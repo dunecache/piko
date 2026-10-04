@@ -94,11 +94,47 @@ public class FeedButton {
     }
 
 
+    /**
+     * Build-time hint for the row-appender name, patched by HookOverflowMenuButton to the real
+     * name for the pinned IG version. Kept as a hint only: {@link #findAdderMethod} falls back
+     * to a signature scan, so a rename without a patch update still resolves.
+     *
+     * <p>Kept as a dedicated method (rather than a field initializer) so the patcher's
+     * string replacement has a single unambiguous literal to rewrite.
+     */
+    private static String adderMethodHint() {
+        return "A00";
+    }
+    private static volatile String ADDER_METHOD_NAME = null;
+
+    private static String adderMethodName() {
+        String hint = ADDER_METHOD_NAME;
+        if (hint != null) return hint;
+        try {
+            hint = adderMethodHint();
+        } catch (Throwable ignored) {
+            hint = "A00";
+        }
+        ADDER_METHOD_NAME = hint;
+        return hint;
+    }
+
     private static Class<?> getEnumButtonClass() throws Exception {
-        return Class.forName("X.6zl");
+        try {
+            return Class.forName("X.6zl");
+        } catch (ClassNotFoundException e) {
+            // Patched name went stale (obfuscated name changes per IG bump). Derive it from
+            // the row appender's first parameter instead of giving up.
+            Method adder = findAdderMethodBySignature(Object.class);
+            if (adder != null) return adder.getParameterTypes()[0];
+            throw e;
+        }
+    }
+    private static Object enumNormalButton(Class<?> enumBtnClass) throws Exception {
+        return (Object) new Entity().getMethod(enumBtnClass, "valueOf", "NORMAL");
     }
     private static Object enumNormalButton() throws Exception {
-        return (Object) new Entity().getMethod(getEnumButtonClass(),"valueOf","NORMAL");
+        return enumNormalButton(getEnumButtonClass());
     }
 
     private static void addButton(MediaOption$Option overflowButton, String overflowButtonText, Object buttonAdderObject, ArrayList buttonlist) throws Exception {
@@ -115,32 +151,98 @@ public class FeedButton {
         Method method = findAdderMethod(clazz);
 
         method.setAccessible(true);
-        method.invoke(null, enumNormalButton(), overflowButton, buttonAdderObject, overflowButtonText, buttonlist, false);
-        logDebug("added row '" + overflowButtonText + "' via " + clazz.getName());
+        Class<?> enumBtnClass = method.getParameterTypes()[0];
+        method.invoke(null, enumNormalButton(enumBtnClass), overflowButton, buttonAdderObject, overflowButtonText, buttonlist, false);
+        logDebug("added row '" + overflowButtonText + "' via " + clazz.getName() + "." + method.getName());
     }
 
     /**
      * The menu row appender, looked up by walking up the class hierarchy. The parameter list
      * tracks each level because the third parameter is declared as the defining class itself.
+     *
+     * <p>Tries the patch-provided {@link #ADDER_METHOD_NAME} first, then falls back to a
+     * signature scan so an obfuscated rename alone cannot remove every Piko row.
      */
     private static Method findAdderMethod(Class<?> clazz) throws Exception {
-        Class<?> enumBtnClass = getEnumButtonClass();
-        for (Class<?> c = clazz; c != null; c = c.getSuperclass()) {
-            try {
-                return c.getDeclaredMethod(
-                        "A00",
-                        enumBtnClass,
-                        MediaOption$Option.class,
-                        c,
-                        CharSequence.class,
-                        ArrayList.class,
-                        boolean.class
-                );
-            } catch (NoSuchMethodException ignored) {
-                // Try the next level up.
-            }
+        Class<?> enumBtnClass = null;
+        try {
+            enumBtnClass = getEnumButtonClass();
+        } catch (Exception ignored) {
         }
-        throw new NoSuchMethodException("A00 row appender on " + clazz.getName());
+        String hintedName = "?";
+        try {
+            hintedName = adderMethodName();
+        } catch (Throwable ignored) {
+        }
+        for (Class<?> c = clazz; c != null; c = c.getSuperclass()) {
+            if (enumBtnClass != null) {
+                try {
+                    return c.getDeclaredMethod(
+                            hintedName,
+                            enumBtnClass,
+                            MediaOption$Option.class,
+                            c,
+                            CharSequence.class,
+                            ArrayList.class,
+                            boolean.class
+                    );
+                } catch (NoSuchMethodException ignored) {
+                    // Fall through to the signature scan below.
+                }
+            }
+            Method scanned = scanAdderSignature(c);
+            if (scanned != null) return scanned;
+        }
+        // Last resort: hierarchy-wide scan without requiring the enum class up front
+        // (covers the case where both the name and the enum class went stale).
+        Method loose = findAdderMethodBySignature(clazz);
+        if (loose != null) return loose;
+        throw new NoSuchMethodException(hintedName + " row appender on " + clazz.getName());
+    }
+
+    /** Signature match on a single class: static, 6 params, (enum, Option, self, text, list, flag). */
+    private static Method scanAdderSignature(Class<?> c) {
+        try {
+            for (Method m : c.getDeclaredMethods()) {
+                if (!java.lang.reflect.Modifier.isStatic(m.getModifiers())) continue;
+                Class<?>[] p = m.getParameterTypes();
+                if (p.length != 6) continue;
+                if (!p[1].equals(MediaOption$Option.class)) continue;
+                if (!p[3].isAssignableFrom(CharSequence.class) && !CharSequence.class.isAssignableFrom(p[3])) continue;
+                if (!java.util.List.class.isAssignableFrom(p[4]) && !p[4].isAssignableFrom(ArrayList.class)) continue;
+                if (!p[5].equals(boolean.class) && !p[5].equals(Boolean.TYPE)) continue;
+                if (!p[0].isEnum()) continue;
+                try {
+                    if (!p[2].isAssignableFrom(c) && !c.isAssignableFrom(p[2])) continue;
+                } catch (Throwable ignored) {
+                    continue;
+                }
+                return m;
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
+    /** Hierarchy-wide signature scan that does not need the enum class up front. */
+    private static Method findAdderMethodBySignature(Class<?> clazz) {
+        try {
+            for (Class<?> c = clazz; c != null && c != Object.class; c = c.getSuperclass()) {
+                Method m = scanAdderSignature(c);
+                if (m != null) return m;
+            }
+            // The adder may live on an unrelated helper class when the receiver is a wrapper:
+            // scan the receiver's methods' declaring classes is already covered above, so also
+            // try interfaces as a final pass.
+            for (Class<?> c = clazz; c != null && c != Object.class; c = c.getSuperclass()) {
+                for (Class<?> itf : c.getInterfaces()) {
+                    Method m = scanAdderSignature(itf);
+                    if (m != null) return m;
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
     }
 
     public static MediaOption$Option downloadOverflowButton(){
@@ -172,6 +274,20 @@ public class FeedButton {
         addButton(MediaOption$Option.PIKO_DOWNLOAD, DOWNLOAD_BUTTON_TEXT, buttonAdderObject, buttonlist);
     }
 
+    private static void tryAddRow(String tag, RowAdder adder) {
+        try {
+            adder.add();
+        } catch (Exception e) {
+            // One failing row must not remove every other Piko row.
+            logDebug("row '" + tag + "' failed: " + e);
+            Logger.printException(() -> "Error at addFeedOverflowButton/" + tag, e);
+        }
+    }
+
+    private interface RowAdder {
+        void add() throws Exception;
+    }
+
     public static void addFeedOverflowButton(Object buttonAdderObject, ArrayList buttonlist){
         try {
             logDebug("addFeedOverflowButton adder="
@@ -179,24 +295,24 @@ public class FeedButton {
                     + " list=" + (buttonlist == null ? "null" : "size=" + buttonlist.size())
                     + " qualityFlag=" + SettingsStatus.ultraPostImageQuality);
             if(Pref.pikoDebug()){
-                addButton(MediaOption$Option.PIKO_DEBUG, str("piko_debug"), buttonAdderObject, buttonlist);
+                tryAddRow("debug", () -> addButton(MediaOption$Option.PIKO_DEBUG, str("piko_debug"), buttonAdderObject, buttonlist));
             }
             if(Pref.enableDownload()) {
-                addDownloadButton(buttonAdderObject, buttonlist);
+                tryAddRow("download", () -> addDownloadButton(buttonAdderObject, buttonlist));
             }
             if(Pref.downloadWithExternalDownloader()) {
-                addButton(MediaOption$Option.PIKO_EXTERNAL_DOWNLOADER, str("piko_download_with_external_downloader"), buttonAdderObject, buttonlist);
+                tryAddRow("external", () -> addButton(MediaOption$Option.PIKO_EXTERNAL_DOWNLOADER, str("piko_download_with_external_downloader"), buttonAdderObject, buttonlist));
             }
             if(Pref.moreOptionsOnPost()) {
-                addButton(MediaOption$Option.PIKO_MORE_POST_OPTION, str("piko_more_options"), buttonAdderObject, buttonlist);
+                tryAddRow("moreOptions", () -> addButton(MediaOption$Option.PIKO_MORE_POST_OPTION, str("piko_more_options"), buttonAdderObject, buttonlist));
             }
             if (SettingsStatus.ultraPostImageQuality) {
-                addButton(MediaOption$Option.PIKO_IMAGE_QUALITY, str("piko_post_quality_title"), buttonAdderObject, buttonlist);
+                tryAddRow("quality", () -> addButton(MediaOption$Option.PIKO_IMAGE_QUALITY, str("piko_post_quality_title"), buttonAdderObject, buttonlist));
             } else {
                 logDebug("image quality row skipped, ultraPostImageQuality flag is off");
             }
         } catch (Exception e) {
-            Logger.printException(() -> "Error at addReelButton",e);
+            Logger.printException(() -> "Error at addFeedOverflowButton",e);
         }
     }
 
