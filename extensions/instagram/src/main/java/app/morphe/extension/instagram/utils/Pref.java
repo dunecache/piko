@@ -155,6 +155,10 @@ public class Pref {
         return SharedPref.getBooleanPref(Settings.DISABLE_SWIPE_TO_CREATE) && SettingsStatus.disableSwipeToCreate;
     }
 
+    public static boolean disableFeedAutoRefresh() {
+        return SharedPref.getBooleanPref(Settings.DISABLE_FEED_AUTO_REFRESH) && SettingsStatus.disableFeedAutoRefresh;
+    }
+
     public static boolean makeEphemeralMediaPermanent() {
         return SharedPref.getBooleanPref(Settings.UNLIMITED_REPLAYS) && SettingsStatus.unlimitedReplaysOnEphemeralMedia;
     }

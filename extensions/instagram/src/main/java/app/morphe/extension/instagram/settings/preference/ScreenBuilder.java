@@ -438,6 +438,15 @@ public class ScreenBuilder {
                     )
             );
         }
+        if (SettingsStatus.disableFeedAutoRefresh) {
+            addPreference(
+                    helper.switchPreference(
+                            str("piko_disable_feed_auto_refresh"),
+                            str("piko_disable_feed_auto_refresh_desc"),
+                            Settings.DISABLE_FEED_AUTO_REFRESH
+                    )
+            );
+        }
         if (SettingsStatus.hideGroupCreationOnSharesheet) {
             addPreference(
                     helper.switchPreference(

@@ -131,12 +131,16 @@ public class SettingsStatus {
     public static void disableSwipeToCreate() {
         disableSwipeToCreate = true;
     }
+    public static boolean disableFeedAutoRefresh = false;
+    public static void disableFeedAutoRefresh() {
+        disableFeedAutoRefresh = true;
+    }
     public static boolean disableDoubleTapLike = false;
     public static void disableDoubleTapLike() {
         disableDoubleTapLike = true;
     }
     public static boolean distractionFreeSection() {
-        return (disableDoubleTapLike || hideNotesTray || disableHighlights || disableStories || disableExplore || disableComments || hideStoriesTray || limitFollowingFeed || hideGroupCreationOnSharesheet || disableReelsScrolling || disableSwipeToCreate);
+        return (disableDoubleTapLike || hideNotesTray || disableHighlights || disableStories || disableExplore || disableComments || hideStoriesTray || limitFollowingFeed || hideGroupCreationOnSharesheet || disableReelsScrolling || disableSwipeToCreate || disableFeedAutoRefresh);
     }
 
     //Misc section.
@@ -275,6 +279,7 @@ public class SettingsStatus {
         FLAGS.put(str("piko_disable_highlights"),SettingsStatus.disableHighlights);
         FLAGS.put(str("piko_disable_stories"),SettingsStatus.disableStories);
         FLAGS.put(str("piko_disable_swipe_to_create"), SettingsStatus.disableSwipeToCreate);
+        FLAGS.put(str("piko_disable_feed_auto_refresh"), SettingsStatus.disableFeedAutoRefresh);
 
         FLAGS.put(str("piko_view_dm_anonymously"),SettingsStatus.viewDmAnonymously);
         FLAGS.put(str("piko_save_deleted_messages"),SettingsStatus.saveDeletedMessages);

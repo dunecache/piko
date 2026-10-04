@@ -78,6 +78,24 @@ public class HookFlags {
         }
     }
 
+    private static void feedAutoRefreshFlags() {
+        if (!Pref.disableFeedAutoRefresh()) return;
+        // ig_android_feed_refresh_fbid (76602): disable automatic scroll triggers.
+        // Manual pull-to-refresh (ptr_rate_limit / ptr_trigger_distance) is untouched.
+        BOOL_FLAGS.put("76602::20", false); // enable_warm_start_auto_scroll
+        BOOL_FLAGS.put("76602::22", false); // enable_in_session_auto_scroll
+        BOOL_FLAGS.put("76602::24", false); // enable_smooth_auto_scroll
+        BOOL_FLAGS.put("76602::33", false); // enable_warm_start_refresh_by_feed_pause_time
+        BOOL_FLAGS.put("76602::77", false); // enable_in_session_auto_scroll_after_stories_exit
+        // ig_android_refresh_instruction_from_server (75687): disable server-instructed auto refresh.
+        BOOL_FLAGS.put("75687::4", false); // enable_auto_refresh_by_instruction
+        BOOL_FLAGS.put("75687::5", false); // enable_on_peak_auto_refresh_by_instruction
+        BOOL_FLAGS.put("75687::8", false); // enable_in_session_refresh_by_instruction
+        BOOL_FLAGS.put("75687::18", false); // enable_on_peak_in_session_auto_scroll_by_instruction
+        // Rug-pull fix: keep new content from replacing visible feed.
+        BOOL_FLAGS.put("101770::0", true); // enable_rug_pull_fix
+    }
+
     private static void addRecommendedFlags(){
         if(SettingsStatus.recommendedFlags) {
             Map<String, Boolean> recFlags = FlagsSharedPref.getAll();
