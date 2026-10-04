@@ -69,7 +69,7 @@ To patch with Twitter/X version 11.88 to 12.4, you must include patches from ano
 ## ⚙️ Patch Details
 
 <!-- PATCHES_START -->
-> **[v3.10.0-dev.4](https://github.com/dunecache/piko/releases/tag/v3.10.0-dev.4)**&nbsp;&nbsp;•&nbsp;&nbsp;`dev`&nbsp;&nbsp;•&nbsp;&nbsp;134 patches total
+> **[v3.10.0-dev.5](https://github.com/dunecache/piko/releases/tag/v3.10.0-dev.5)**&nbsp;&nbsp;•&nbsp;&nbsp;`dev`&nbsp;&nbsp;•&nbsp;&nbsp;135 patches total
 <details>
 <summary>📦 Twitter&nbsp;&nbsp;•&nbsp;&nbsp;74 patches</summary>
 <br>
@@ -159,7 +159,7 @@ To patch with Twitter/X version 11.88 to 12.4, you must include patches from ano
 </details>
 
 <details>
-<summary>📦 Instagram&nbsp;&nbsp;•&nbsp;&nbsp;60 patches</summary>
+<summary>📦 Instagram&nbsp;&nbsp;•&nbsp;&nbsp;61 patches</summary>
 <br>
 
 **🎯 Supported versions:**
@@ -185,6 +185,7 @@ To patch with Twitter/X version 11.88 to 12.4, you must include patches from ano
 | [Disable discover people](#disable-discover-people) | Disables discover people section on user profile |  |
 | [Disable double tap like](#disable-double-tap-like) | Disable double tap like on post, reel, comment and message |  |
 | [Disable explore](#disable-explore) |  |  |
+| [Disable feed auto refresh](#disable-feed-auto-refresh) | Prevents main home feed from auto-refreshing and auto-scrolling to top, and suppresses the New posts banner. Manual pull-to-refresh still works. |  |
 | [Disable highlights](#disable-highlights) |  |  |
 | [Disable onboarding permission prompts](#disable-onboarding-permission-prompts) | Prevents contacts and location permission onboarding prompts from appearing. |  |
 | [Disable screenshot detection](#disable-screenshot-detection) | Disables screenshots detection in DM |  |

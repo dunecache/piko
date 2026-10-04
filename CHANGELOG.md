@@ -1,3 +1,9 @@
+## [3.10.0-dev.5](https://github.com/dunecache/piko/compare/v3.10.0-dev.4...v3.10.0-dev.5) (2026-10-04)
+
+### ✨ New Features
+
+* **Instagram:** add disable feed auto refresh ([fc5baf0](https://github.com/dunecache/piko/commit/fc5baf0211698048ff19c9e30340bc5a15fd1d30))
+
 ## [3.10.0-dev.4](https://github.com/dunecache/piko/compare/v3.10.0-dev.3...v3.10.0-dev.4) (2026-10-03)
 
 ### 🐛 Bug Fixes
